@@ -7,10 +7,12 @@ dependencies:
   - _openmp_mutex=4.5
   - astroid=2.4.2
   - autopep8=1.5.4
-  - ca-certificates=2020.6.20
+  - blas=1.0
+  - ca-certificates=2020.7.22
   - certifi=2020.6.20
   - click=7.1.2
   - isort=5.5.2
+  - joblib=0.16.0
   - lazy-object-proxy=1.4.3
   - ld_impl_linux-64=2.35
   - libblas=3.8.0
@@ -41,9 +43,12 @@ dependencies:
   - pytz=2020.1
   - pyyaml=5.3.1
   - readline=8.0
+  - scikit-learn=0.23.2
+  - scipy=1.5.2
   - setuptools=49.6.0
   - six=1.15.0
   - sqlite=3.33.0
+  - threadpoolctl=2.1.0
   - tk=8.6.10
   - toml=0.10.1
   - typed-ast=1.4.1
