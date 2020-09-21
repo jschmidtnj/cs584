@@ -17,17 +17,11 @@ from loguru import logger
 import matplotlib.pyplot as plt
 
 TEST_SIZE = 0.2
-NUM_EPOCHS = 10 * 3
+NUM_EPOCHS = 100
 PLOT_EPOCH_ITER = 1
 BATCH_SIZE = 256
 
 assert NUM_EPOCHS >= PLOT_EPOCH_ITER, 'number of epochs must be greater than plot iter'
-
-MIN_EPOCHS = 1000
-# assert NUM_EPOCHS > MIN_EPOCHS, f'num epochs must be greater than {MIN_EPOCHS} to get convergence'
-
-# https://www.kaggle.com/sudhirnl7/logistic-regression-tfidf
-# https://www.kaggle.com/kashnitsky/logistic-regression-tf-idf-baseline
 
 
 def one_minus(data: List[float]) -> List[float]:
@@ -65,8 +59,8 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
                         learning_rate='constant', learning_rate_init=learning_rate,
                         solver=optimizer)
 
-    text_transformer = TfidfVectorizer(stop_words='english', ngram_range=(
-        1, 2), lowercase=True, max_features=150000)
+    text_transformer = TfidfVectorizer(
+        stop_words='english', lowercase=True, max_features=150000)
 
     X = clean_data[paragraph_key].values
     y = clean_data[class_key].values
@@ -132,7 +126,9 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
     ax[1].plot(one_minus(mlp_testing_scores))
     ax[1].set_title('Validation Loss')
     fig.suptitle(
-        f"Training and Validation Loss every {PLOT_EPOCH_ITER} epoch{'' if PLOT_EPOCH_ITER == 1 else 's'}", fontsize=14)
+        f'MLP Training and Validation Loss every {PLOT_EPOCH_ITER} ' +
+        f"epoch{'' if PLOT_EPOCH_ITER == 1 else 's'}",
+        fontsize=14)
 
     # Feature Extraction
     logger.info('start text transform')
