@@ -20,4 +20,5 @@ disable =
     wrong-import-position,
     duplicate-code,
     fixme,
-    too-few-public-methods
+    too-few-public-methods,
+    too-many-statements

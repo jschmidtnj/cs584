@@ -10,6 +10,7 @@ from variables import data_folder, paragraph_key, label_key, random_state, class
 from loguru import logger
 from books import BookType, start_end_map, class_map
 import pandas as pd
+from typing import Tuple
 
 title_split: str = 'title: '
 author_split: str = 'author: '
@@ -25,13 +26,15 @@ multi_quote_identifier: str = '"'
 min_line_len: int = 6  # line discarded if less than this number of characters
 
 
-def clean() -> pd.DataFrame:
+def clean() -> Tuple[pd.DataFrame, List[BookType]]:
     """
     data cleaning
     """
     data: pd.DataFrame = pd.DataFrame()
     class_count: int = 0
+    label_list: List[BookType] = []
 
+    # preprocess data and construct examples
     for file_path in get_glob(f'{data_folder}/*.txt'):
         file_name: str = basename(splitext(file_path)[0])
         logger.info(f'processing {file_name}')
@@ -87,10 +90,11 @@ def clean() -> pd.DataFrame:
             label_key: [class_name] * len(paragraphs),
             class_key: class_count
         })], ignore_index=True)
+        label_list.append(book_key)
         class_count += 1
     logger.info(
         f'\nsample of output data:\n{data.sample(random_state=random_state, n=5)}')
-    return data
+    return data, label_list
 
 
 if __name__ == '__main__':

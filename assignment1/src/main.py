@@ -13,8 +13,8 @@ def main() -> None:
     """
     main entry point
     """
-    clean_data = clean()
-    train(clean_data)
+    clean_data, label_list = clean()
+    train(clean_data, label_list)
 
 
 if __name__ == '__main__':
