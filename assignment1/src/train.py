@@ -5,7 +5,7 @@ training
 
 from typing import List
 from sklearn.model_selection import StratifiedKFold
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression as LogisticRegression2
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report
@@ -15,9 +15,10 @@ import pandas as pd
 import numpy as np
 from loguru import logger
 import matplotlib.pyplot as plt
+from logit2 import LogisticRegression as LogisticRegression
 
 TEST_SIZE = 0.2
-NUM_EPOCHS = 100
+NUM_EPOCHS = 5
 PLOT_EPOCH_ITER = 1
 BATCH_SIZE = 256
 
