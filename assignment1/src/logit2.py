@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer
 from sklearn.linear_model import SGDClassifier
 
-BATCH_SIZE = 5
+BATCH_SIZE = 32
 
 # https://machinelearningmastery.com/implement-logistic-regression-stochastic-gradient-descent-scratch-python/
 # https://github.com/iamkucuk/Logistic-Regression-With-Mini-Batch-Gradient-Descent/blob/master/logistic_regression_notebook.ipynb
@@ -105,9 +105,10 @@ def _logistic_regression_path(X, y, Cs=10, fit_intercept=True,
 
     def func(w, X, Y, alpha, sample_weight):
         res = _multinomial_loss_grad(w, X, Y, alpha, sample_weight)[0:2]
+        # print(res[0], res[1])
         loss = res[0]
         # TODO - compute the score here...
-        # TODO - alpha is actually lambda!
+        # alpha is lambda
         # print(loss)
         # print(alpha, loss)
         return res
@@ -116,13 +117,28 @@ def _logistic_regression_path(X, y, Cs=10, fit_intercept=True,
     n_iter = np.zeros(len(Cs), dtype=np.int32)
     for i, C in enumerate(Cs):
         # TODO - add for loop with batch size for minibatch
-        opt_res = minimize(
-            func, w0, method="l-bfgs-b", jac=True,
-            args=(X, target, 1. / C, sample_weight),
-            options={"gtol": tol, "maxiter": max_iter}
-        )
-        n_iter_i = min(opt_res.nit, max_iter)
-        w0, loss = opt_res.x, opt_res.fun
+        # for _ in range(max_iter):
+        #     grad_res = _multinomial_loss_grad(w0, X, target, 1. / C, sample_weight)
+        #     # print(grad_res[0], grad_res[2])
+        #     w0 -= .1 * grad_res[1]
+        # n_iter_i = max_iter
+        num_epoch = 20
+        for k in range(num_epoch):
+            print(k)
+            for j in range(int(X.shape[0] / BATCH_SIZE)):
+                sample = np.random.choice(X.shape[0], BATCH_SIZE, replace=False)
+                grad_res = _multinomial_loss_grad(w0, X[sample], target[sample], 1. / C, sample_weight[sample])
+                w0 -= .05 * grad_res[1] # self.gradient(X[sample,:], target[sample])
+        n_iter_i = num_epoch
+        # opt_res = minimize(
+        #     func, w0, method="l-bfgs-b", jac=True,
+        #     args=(X, target, 1. / C, sample_weight),
+        #     options={"gtol": tol, "maxiter": max_iter}
+        # )
+        # n_iter_i = min(opt_res.nit, max_iter)
+        # w0, loss = opt_res.x, opt_res.fun
+        # # print('LAST!!!')
+        # # print(loss, w0)
 
         n_classes = max(2, classes.size)
         multi_w0 = np.reshape(w0, (n_classes, -1))
@@ -159,7 +175,7 @@ class LogisticRegression:
 
     def fit(self, X, y):
         solver = self.solver
-        C_s = [1, 2, 3, 4]
+        C_s = [1]
         penalty = self.penalty
 
         self.classes_ = np.unique(y)

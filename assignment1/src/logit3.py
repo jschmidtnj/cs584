@@ -11,16 +11,12 @@ from scipy.special import logsumexp
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer
 from sklearn.linear_model import SGDClassifier
+import math
 
 NUM_EPOCHS = 10
 BATCH_SIZE = 32
 
 # SGD-based logistic regression, which has minibatch also
-
-
-import math
-
-# from https://github.com/ral99/SGDForLinearModels/blob/master/pysgd/linear_models.py
 
 class LogisticRegression:
     """
@@ -30,13 +26,6 @@ class LogisticRegression:
     def __init__(self, learning_rate=0.01, regularization_strength=0.0, **args):
         """
         Initialize the linear model.
-        
-        n_epochs -- int.
-        learning_rate -- float or function. If it is a function, it is called with one argument 't',
-                         where 't' is the iteration counter.
-        batch_size -- int. If None, the batch_size is the number of examples in the training set
-                      (regular gradient descent).
-        regularization_strength -- float. 0.0 (no regularization) by default.
         """
         self._w = None
         self._n_epochs = NUM_EPOCHS
@@ -47,9 +36,6 @@ class LogisticRegression:
     def fit(self, X, y):
         """
         Fit the model with training data.
-        
-        X -- numpy array of shape [n_samples, n_features].
-        y -- numpy array of shape [n_samples].
         """
         X = X.toarray()
         X = np.hstack((np.ones((X.shape[0], 1)), X)) # x_0 is always 1
@@ -87,10 +73,6 @@ class LogisticRegression:
     def score(self, X, y, sample_weight=None):
         """
         Return the mean accuracy on the given test data and labels.
-
-        In multi-label classification, this is the subset accuracy
-        which is a harsh metric since you require for each sample that
-        each label set be correctly predicted.
         """
         X = X.toarray()
         return accuracy_score(y, self.predict(X), sample_weight=sample_weight)

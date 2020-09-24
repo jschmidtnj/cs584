@@ -5,9 +5,11 @@ logistic regression
 
 import numpy as np
 from loguru import logger
+from sklearn.metrics import accuracy_score
 
-BATCH_SIZE = 5
+BATCH_SIZE = 32
 
+# mini-batch logistic regression
 
 class LogisticRegression:
 
@@ -38,11 +40,17 @@ class LogisticRegression:
         self.weights = None
         self.bias_matrix = None
 
-    def score(self, _X_test_text, _y_test):
-        return 'pass'
+    def score(self, X, y):
+        return accuracy_score(y, self.predict(X))
 
-    def predict(self, _X_test_text):
-        return 'test'
+    def predict(self, X):
+        X = X.toarray()
+        res = []
+        for elem in X:
+            net_output = self._net(elem)
+            output = np.argmax(net_output[0])
+            res.append(output)
+        return res
 
     def _process_labels(self, y_train):
         res = []
@@ -51,7 +59,7 @@ class LogisticRegression:
             res[-1][val] = 1
         return np.array(res)
 
-    def fit(self, X_train_text, y_train, y_test):
+    def fit(self, X_train_text, y_train):
         # training loop
         X_train_text = X_train_text.toarray()
         y_train = self._process_labels(y_train)
@@ -72,16 +80,14 @@ class LogisticRegression:
         logger.success(
             f"Shape of B (Bias matrix for iteration): {self.bias_matrix.shape}")
 
-        epochs = 10
-        num_training_samples = X_train_text.shape[0]
-        dataset_length = y_test.shape[0]
+        epochs = 3
+        dataset_length = X_train_text.shape[0]
         dataset_indexes = np.arange(dataset_length)
         batches = int(len(X_train_text) / BATCH_SIZE)
         for epoch in range(epochs):
             logger.info(f"Epoch: {epoch}")
             epoch_loss = 0
             epoch_gradient = np.zeros((BATCH_SIZE, K))
-            random_perm = np.random.permutation(num_training_samples)
             for i in range(batches):
                 for _ in range(BATCH_SIZE):
                     current_indices = np.random.choice(
@@ -118,6 +124,7 @@ class LogisticRegression:
         net_output = self._net(testX)
         logger.info(f"net output: {net_output[0]}")
         logger.info(f"net prediction: {np.argmax(net_output[0])}")
+        return [], [], lmda
 
 
 if __name__ == '__main__':
