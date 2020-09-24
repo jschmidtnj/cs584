@@ -23,6 +23,7 @@ BATCH_SIZE = 32
 # https://github.com/sergei-bondarenko/machine-learning/blob/master/l2.ipynb
 # https://github.com/ral99/SGDForLinearModels/blob/master/pysgd/linear_models.py
 
+
 def squared_norm(x):
     """Squared Euclidean or Frobenius norm of x.
 
@@ -126,9 +127,12 @@ def _logistic_regression_path(X, y, Cs=10, fit_intercept=True,
         for k in range(num_epoch):
             print(k)
             for j in range(int(X.shape[0] / BATCH_SIZE)):
-                sample = np.random.choice(X.shape[0], BATCH_SIZE, replace=False)
-                grad_res = _multinomial_loss_grad(w0, X[sample], target[sample], 1. / C, sample_weight[sample])
-                w0 -= .05 * grad_res[1] # self.gradient(X[sample,:], target[sample])
+                sample = np.random.choice(
+                    X.shape[0], BATCH_SIZE, replace=False)
+                grad_res = _multinomial_loss_grad(
+                    w0, X[sample], target[sample], 1. / C, sample_weight[sample])
+                # self.gradient(X[sample,:], target[sample])
+                w0 -= .05 * grad_res[1]
         n_iter_i = num_epoch
         # opt_res = minimize(
         #     func, w0, method="l-bfgs-b", jac=True,

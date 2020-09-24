@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-logistic regression
+batch logistic regression
 """
 
 import numpy as np
-from scipy.optimize import minimize
 from sklearn.utils.extmath import safe_sparse_dot
-from scipy.special import logsumexp
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer
+from scipy.optimize import minimize
+from scipy.special import logsumexp
+
 
 def squared_norm(x):
     """Squared Euclidean norm of x. equivalent to norm(x) ** 2."""
@@ -54,8 +55,11 @@ def loss_grad(w, X, Y, alpha, sample_weight):
     return loss, grad.ravel(), p
 
 
-def _logistic_regression(X, y, Cs=10, fit_intercept=True,
-                              max_iter=100, tol=1e-4):
+def _logistic_regression(X, y, lmbda=1, fit_intercept=True,
+                         max_iter=100, tol=1e-4):
+    """
+    main logistic regression training function
+    """
 
     _, num_features = X.shape
 
@@ -80,89 +84,87 @@ def _logistic_regression(X, y, Cs=10, fit_intercept=True,
 
     training_losses = []
     validation_losses = []
-    last_lambda = [-1]
 
     def callback(w, X, Y, alpha, sample_weight):
         res = loss_grad(w, X, Y, alpha, sample_weight)[0:2]
         training_losses.append(res[0])
         validation_losses.append(res[0])
-        # alpha is lambda
-        last_lambda[0] = alpha
         return res
 
     coefs = []
-    for i, C in enumerate(Cs):
 
-        # # TODO - add for loop with batch size for minibatch
-        # for _ in range(max_iter):
-        #     grad_res = loss_grad(w0, X, target, 1. / C, sample_weight)
-        #     # print(grad_res[0], grad_res[2])
-        #     w0 -= .1 * grad_res[1]
+    # minimize
+    opt_res = minimize(
+        callback, w0, method="l-bfgs-b", jac=True,
+        args=(X, target, 1. / lmbda, sample_weight),
+        options={"gtol": tol, "maxiter": max_iter}
+    )
+    w0 = opt_res.x
 
-        # # TODO - loop for sgd
-        # batch_size = 32
-        # for k in range(max_iter):
-        #     print(k)
-        #     for j in range(int(X.shape[0] / batch_size)):
-        #         sample = np.random.choice(X.shape[0], batch_size, replace=False)
-        #         grad_res = loss_grad(w0, X[sample], target[sample], 1. / C, sample_weight[sample])
-        #         w0 -= .05 * grad_res[1]
+    num_classes = max(2, classes.size)
+    multi_w0 = np.reshape(w0, (num_classes, -1))
+    if num_classes == 2:
+        multi_w0 = multi_w0[1][np.newaxis, :]
+    coefs.append(multi_w0.copy())
 
-        # loop for batch
-        opt_res = minimize(
-            callback, w0, method="l-bfgs-b", jac=True,
-            args=(X, target, 1. / C, sample_weight),
-            options={"gtol": tol, "maxiter": max_iter}
-        )
-        w0 = opt_res.x
-
-        num_classes = max(2, classes.size)
-        multi_w0 = np.reshape(w0, (num_classes, -1))
-        if num_classes == 2:
-            multi_w0 = multi_w0[1][np.newaxis, :]
-        coefs.append(multi_w0.copy())
-
-    return np.array(coefs), np.array(Cs), training_losses, validation_losses, last_lambda
+    return np.array(coefs), np.array([lmbda]), training_losses, validation_losses
 
 
-class LogisticRegression:
+class BatchLogisticRegression:
+    """
+    batch logistic regression
+    uses minimization function. is different from mini-batch
+    """
+
     def __init__(self, tol=1e-4, fit_intercept=True,
-                 max_iter=100, Cs=[1], **_args):
+                 max_iter=100, lmbda=1, **_args):
 
         self.tol = tol
         self.fit_intercept = fit_intercept
         self.max_iter = max_iter
-        self.Cs = Cs
+        self.lmbda = lmbda
+        self.training_losses = None
+        self.validation_losses = None
+        self.classes = None
+        self.coefficients = []
+        self.intercept = None
 
     def fit(self, X, y):
+        """
+        batch logistic regression fit function (runs training)
+        """
 
-        self.classes_ = np.unique(y)
+        self.classes = np.unique(y)
 
-        num_classes = len(self.classes_)
+        num_classes = len(self.classes)
 
         self.coefficients = []
-        self.intercept_ = np.zeros(num_classes)
+        self.intercept = np.zeros(num_classes)
 
-        res = [_logistic_regression(X, y, Cs=self.Cs, fit_intercept=self.fit_intercept,
-                                                         tol=self.tol,
-                                                         max_iter=self.max_iter)]
+        res = [_logistic_regression(X, y, lmbda=self.lmbda, fit_intercept=self.fit_intercept,
+                                    tol=self.tol, max_iter=self.max_iter)]
 
-        fold_coefficients, _, training_losses, validation_losses, last_lambda = zip(*res)
-        training_losses = training_losses[0]
-        validation_losses = validation_losses[0]
-        last_lambda = last_lambda[0][0]
+        fold_coefficients, _, training_losses, validation_losses = zip(
+            *res)
 
         self.coefficients = fold_coefficients[0][0]
-        self.intercept_ = self.coefficients[:, -1]
+        self.intercept = self.coefficients[:, -1]
         self.coefficients = self.coefficients[:, :-1]
-        return training_losses, validation_losses, last_lambda
+        self.training_losses = training_losses[0]
+        self.validation_losses = validation_losses[0]
+
+    def get_train_validation_loss(self):
+        """
+        get training loss and validation loss data
+        """
+        return self.training_losses, self.validation_losses
 
     def decision_function(self, X):
         """
         Predict confidence scores for samples.
         """
         scores = safe_sparse_dot(X, self.coefficients.T,
-                                 dense_output=True) + self.intercept_
+                                 dense_output=True) + self.intercept
         return scores.ravel() if scores.shape[1] == 1 else scores
 
     def predict(self, X):
@@ -174,7 +176,7 @@ class LogisticRegression:
             indices = (scores > 0).astype(np.int)
         else:
             indices = scores.argmax(axis=1)
-        res = self.classes_[indices]
+        res = self.classes[indices]
         return res
 
     def score(self, X, y, sample_weight=None):

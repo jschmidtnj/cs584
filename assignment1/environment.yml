@@ -10,6 +10,8 @@ dependencies:
   - attrs=20.2.0
   - autopep8=1.5.4
   - backcall=0.2.0
+  - backports=1.0
+  - backports.functools_lru_cache=1.6.1
   - blas=1.0
   - bleach=3.2.1
   - ca-certificates=2020.7.22
@@ -77,6 +79,7 @@ dependencies:
   - notebook=6.1.1
   - numpy=1.19.1
   - olefile=0.46
+  - openblas=0.3.10
   - openssl=1.1.1g
   - packaging=20.4
   - pandas=1.1.2

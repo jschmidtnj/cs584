@@ -196,12 +196,14 @@ BATCH_SIZE = 32
 #         """The L2 norm of the weight vector. """
 #         return sqrt(self.sq_norm)
 
+
 def sqnorm(x_data_ptr, x_ind_ptr, xnnz):
     x_norm = 0.0
     for j in range(xnnz):
         z = x_data_ptr[j]
         x_norm += z * z
     return x_norm
+
 
 def _plain_sgd(weights,
                intercept,
@@ -291,7 +293,7 @@ def _plain_sgd(weights,
             dataset.shuffle(seed)
         for i in range(n_samples):
             dataset.next(x_data_ptr, x_ind_ptr, xnnz,
-                            y, sample_weight)
+                         y, sample_weight)
 
             sample_index = dataset.index_data_ptr[dataset.current_index]
             if validation_mask_view[sample_index]:
@@ -355,9 +357,9 @@ def _plain_sgd(weights,
                 # the update is 0
 
                 w.add_average(x_data_ptr, x_ind_ptr, xnnz,
-                                update, (t - average + 1))
+                              update, (t - average + 1))
                 average_intercept += ((intercept - average_intercept) /
-                                        (t - average + 1))
+                                      (t - average + 1))
 
             t += 1
             count += 1
@@ -365,9 +367,9 @@ def _plain_sgd(weights,
         # report epoch information
         if verbose > 0:
             print("Norm: %.2f, NNZs: %d, Bias: %.6f, T: %d, "
-                    "Avg. loss: %f"
-                    % (w.norm(), weights.nonzero()[0].shape[0],
-                        intercept, count, sumloss / n_samples))
+                  "Avg. loss: %f"
+                  % (w.norm(), weights.nonzero()[0].shape[0],
+                     intercept, count, sumloss / n_samples))
             # print("Total training time: %.2f seconds."
             #         % (time() - t_start))
 

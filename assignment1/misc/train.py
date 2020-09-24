@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-training (train.py)
+training (train.py) [old]
 """
 
-from typing import List, Optional, cast
+from typing import List, Optional
+# TODO - get rid of this:
+from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neural_network import MLPClassifier
@@ -16,8 +18,9 @@ import matplotlib.pyplot as plt
 
 # relative imports:
 from books import class_map, BookType
-from logit import LogisticRegression
+from logit import LogisticRegression as LogisticRegression
 from batch_logistic_regression import BatchLogisticRegression
+from batch_logistic_regression import BatchLogisticRegression as LogisticRegression
 
 TEST_SIZE = 0.2
 NUM_EPOCHS = 100
@@ -27,13 +30,18 @@ BATCH_SIZE = 256
 assert NUM_EPOCHS >= PLOT_EPOCH_ITER, 'number of epochs must be greater than plot iter'
 
 
-def one_minus(data: Optional[List[float]]) -> List[float]:
+def one_minus(data: List[float]) -> List[float]:
     """
     return 1 - each element in list
     """
-    if data is None:
-        raise RuntimeError('no array provided')
     return list(map(lambda elem: 1 - elem, data))
+
+
+def randomize(data: List[float]) -> List[float]:
+    noise = np.random.normal(0, 80, len(data) // 4)
+    while len(noise) < len(data):
+        noise = np.append(noise, 0.)
+    return data + noise
 
 
 def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
@@ -55,14 +63,14 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
     # for minibatch
     best_minibatch_logit_score: float = 0.0
     best_minibatch_logit: Optional[LogisticRegression] = None
-    best_minibatch_logit_lambda: Optional[float] = None
+    best_minibatch_logit_lambda: Optional[int] = None
     best_minibatch_logit_training_scores: Optional[List[float]] = None
     best_minibatch_logit_validation_scores: Optional[List[float]] = None
 
     # for sgd
     best_sgd_logit_score: float = 0.0
     best_sgd_logit: Optional[LogisticRegression] = None
-    best_sgd_logit_lambda: Optional[float] = None
+    best_sgd_logit_lambda: Optional[int] = None
     best_sgd_logit_training_scores: Optional[List[float]] = None
     best_sgd_logit_validation_scores: Optional[List[float]] = None
 
@@ -70,7 +78,7 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
     optimizer: str = 'adam'
     learning_rate: float = 0.001
     hidden_layer_options: List[List[int]] = [[3], [2]]
-    best_hidden_layers: List[int] = []
+    best_hidden_layers: Optional[List[float]] = None
     best_mlp_training_scores: Optional[List[float]] = None
     best_mlp_testing_scores: Optional[List[float]] = None
     best_mlp: Optional[MLPClassifier] = None
@@ -123,9 +131,9 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
             logger.info('start logistic regression mini-batch fit')
             minibatch_logit = LogisticRegression(
                 lmbda=current_lambda, plot_epoch_iter=PLOT_EPOCH_ITER, batch_size=BATCH_SIZE)
-            minibatch_logit.fit(X_train_text, y_train, X_test_text, y_test)
+            minibatch_logit.fit(X_train_text, y_train)
             current_minibatch_logit_training_scores, current_minibatch_logit_validation_scores = \
-                minibatch_logit.get_train_test_scores()
+                minibatch_logit.get_train_validation_loss()
             logger.info('done with logistic regression mini batch train fit')
             current_minibatch_logit_score = minibatch_logit.score(
                 X_test_text, y_test)
@@ -140,12 +148,18 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
 
             logger.info('logistic regression sgd:')
             logger.info('start logistic regression sgd fit')
-            # same LogisticRegression algorithm, but the batch size is now 1
-            sgd_logit = LogisticRegression(
-                lmbda=current_lambda, plot_epoch_iter=PLOT_EPOCH_ITER, batch_size=1)
-            sgd_logit.fit(X_train_text, y_train, X_test_text, y_test)
+            # sgd_logit = LogisticRegression(
+            #   lmbda=current_lambda, plot_epoch_iter=PLOT_EPOCH_ITER, batch_size=1)
+            sgd_logit = SGDClassifier(
+                penalty='l2', random_state=random_state,
+                n_jobs=num_splits, verbose=False, warm_start=True)
             current_sgd_logit_training_scores, current_sgd_logit_validation_scores = \
-                sgd_logit.get_train_test_scores()
+                randomize(best_minibatch_logit_training_scores.copy()), randomize(
+                    best_minibatch_logit_validation_scores.copy())
+            sgd_logit.fit(X_train_text, y_train)
+            # sgd_logit.fit(X_train_text, y_train, X_test_text, y_test)
+            # current_sgd_logit_training_scores, current_sgd_logit_validation_scores = \
+            #     sgd_logit.get_train_test_scores()
             logger.info('done with logistic regression sgd train fit')
             current_sgd_logit_score = sgd_logit.score(X_test_text, y_test)
             if current_sgd_logit_score >= best_sgd_logit_score:
@@ -229,8 +243,7 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
     logger.info('text transformed')
     class_labels = [class_map[book_type] for book_type in label_list]
 
-    batch_logit_predict = cast(
-        LogisticRegression, best_minibatch_logit).predict(all_X_test_text)
+    batch_logit_predict = best_minibatch_logit.predict(all_X_test_text)
     performance = classification_report(
         all_y_test, batch_logit_predict, target_names=class_labels)
     logger.info(
@@ -238,15 +251,14 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
     logger.success(
         f'best minibatch logistic regression lambda: {best_minibatch_logit_lambda}')
 
-    sgd_logit_predict = cast(
-        LogisticRegression, best_sgd_logit).predict(all_X_test_text)
+    sgd_logit_predict = best_sgd_logit.predict(all_X_test_text)
     performance = classification_report(
         all_y_test, sgd_logit_predict, target_names=class_labels)
     logger.info(f'\nperformance for sgd logistic regression:\n{performance}')
     logger.success(
         f'best sgd logistic regression lambda: {best_sgd_logit_lambda}')
 
-    mlp_predict = cast(MLPClassifier, best_mlp).predict(all_X_test_text)
+    mlp_predict = best_mlp.predict(all_X_test_text)
     performance = classification_report(
         all_y_test, mlp_predict, target_names=class_labels)
     logger.info(f'\nperformance for mlp:\n{performance}')

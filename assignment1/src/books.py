@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-classification type
+classification type (books.py)
 """
 
 from enum import Enum

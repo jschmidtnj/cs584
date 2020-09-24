@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-data clean
+data clean (clean.py)
 """
 
 from os.path import basename, splitext
