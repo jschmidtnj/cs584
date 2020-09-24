@@ -84,7 +84,8 @@ class LogisticRegression:
             random_perm = np.random.permutation(num_training_samples)
             for i in range(batches):
                 for _ in range(BATCH_SIZE):
-                    current_indices = np.random.choice(dataset_indexes, BATCH_SIZE, replace=False)
+                    current_indices = np.random.choice(
+                        dataset_indexes, BATCH_SIZE, replace=False)
                     Xi = X_train_text[current_indices]
                     Yi = y_train[current_indices]
                     yhat = self._net(Xi)

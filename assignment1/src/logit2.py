@@ -5,12 +5,23 @@ logistic regression
 
 import numpy as np
 from loguru import logger
-from scipy import optimize
+from scipy.optimize import minimize
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.special import logsumexp
+from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer
+from sklearn.linear_model import SGDClassifier
 
 BATCH_SIZE = 5
+
+# https://machinelearningmastery.com/implement-logistic-regression-stochastic-gradient-descent-scratch-python/
+# https://github.com/iamkucuk/Logistic-Regression-With-Mini-Batch-Gradient-Descent/blob/master/logistic_regression_notebook.ipynb
+# https://www.geeksforgeeks.org/ml-mini-batch-gradient-descent-with-python/
+# http://www.oranlooney.com/post/ml-from-scratch-part-2-logistic-regression/
+# https://stats.stackexchange.com/a/117928 - mini-batch vs batch vs epoch
+# https://towardsdatascience.com/understanding-the-scaling-of-l%C2%B2-regularization-in-the-context-of-neural-networks-e3d25f8b50db
+# https://github.com/sergei-bondarenko/machine-learning/blob/master/l2.ipynb
+# https://github.com/ral99/SGDForLinearModels/blob/master/pysgd/linear_models.py
 
 def squared_norm(x):
     """Squared Euclidean or Frobenius norm of x.
@@ -19,6 +30,7 @@ def squared_norm(x):
     """
     x = np.ravel(x, order='K')
     return np.dot(x, x)
+
 
 def _multinomial_loss(w, X, Y, alpha, sample_weight):
     """Computes the multinomial loss, gradient and class probabilities."""
@@ -40,6 +52,7 @@ def _multinomial_loss(w, X, Y, alpha, sample_weight):
     p = np.exp(p, p)
     return loss, p, w
 
+
 def _multinomial_loss_grad(w, X, Y, alpha, sample_weight):
     """Computes multinomial loss and class probabilities."""
     n_classes = Y.shape[1]
@@ -56,16 +69,14 @@ def _multinomial_loss_grad(w, X, Y, alpha, sample_weight):
         grad[:, -1] = diff.sum(axis=0)
     return loss, grad.ravel(), p
 
-def _logistic_regression_path(X, y, pos_class=None, Cs=10, fit_intercept=True,
+
+def _logistic_regression_path(X, y, Cs=10, fit_intercept=True,
                               max_iter=100, tol=1e-4, verbose=0,
-                              solver='lbfgs', coef=None,
-                              class_weight=None, dual=False, penalty='l2',
-                              intercept_scaling=1.,
-                              random_state=None, check_input=True,
-                              max_squared_sum=None, l1_ratio=None):
+                              pos_class=None, coef=None):
 
     # Preprocessing.
     _, n_features = X.shape
+    print(X.shape, y.shape)
 
     classes = np.unique(y)
 
@@ -87,32 +98,28 @@ def _logistic_regression_path(X, y, pos_class=None, Cs=10, fit_intercept=True,
         Y_multi = np.hstack([1 - Y_multi, Y_multi])
 
     w0 = np.zeros((classes.size, n_features + int(fit_intercept)),
-                    order='F', dtype=X.dtype)
+                  order='F', dtype=X.dtype)
 
-    if coef is not None:
-        # For binary problems coef.shape[0] should be 1, otherwise it
-        # should be classes.size.
-        n_classes = classes.size
-        if n_classes == 2:
-            n_classes = 1
-        w0[:, :coef.shape[1]] = coef
-
-    # scipy.optimize.minimize and newton-cg accepts only
-    # ravelled parameters.
     w0 = w0.ravel()
     target = Y_multi
-    def func(x, *args):
-        return _multinomial_loss_grad(x, *args)[0:2]
+
+    def func(w, X, Y, alpha, sample_weight):
+        res = _multinomial_loss_grad(w, X, Y, alpha, sample_weight)[0:2]
+        loss = res[0]
+        # TODO - compute the score here...
+        # TODO - alpha is actually lambda!
+        # print(loss)
+        # print(alpha, loss)
+        return res
 
     coefs = list()
     n_iter = np.zeros(len(Cs), dtype=np.int32)
     for i, C in enumerate(Cs):
-        iprint = [-1, 50, 1, 100, 101][
-            np.searchsorted(np.array([0, 1, 2, 3]), verbose)]
-        opt_res = optimize.minimize(
-            func, w0, method="L-BFGS-B", jac=True,
+        # TODO - add for loop with batch size for minibatch
+        opt_res = minimize(
+            func, w0, method="l-bfgs-b", jac=True,
             args=(X, target, 1. / C, sample_weight),
-            options={"iprint": iprint, "gtol": tol, "maxiter": max_iter}
+            options={"gtol": tol, "maxiter": max_iter}
         )
         n_iter_i = min(opt_res.nit, max_iter)
         w0, loss = opt_res.x, opt_res.fun
@@ -126,6 +133,7 @@ def _logistic_regression_path(X, y, pos_class=None, Cs=10, fit_intercept=True,
         n_iter[i] = n_iter_i
 
     return np.array(coefs), np.array(Cs), n_iter
+
 
 class LogisticRegression:
     def __init__(self, penalty='l2', *, dual=False, tol=1e-4, C=1.0,
@@ -151,10 +159,8 @@ class LogisticRegression:
 
     def fit(self, X, y):
         solver = self.solver
-        C_ = self.C
+        C_s = [1, 2, 3, 4]
         penalty = self.penalty
-
-        _dtype = np.float64
 
         self.classes_ = np.unique(y)
 
@@ -174,13 +180,10 @@ class LogisticRegression:
 
         fold_coefs_ = []
         for class_, warm_start_coef_ in zip(classes_, warm_start_coef):
-            fold_coefs_.append(_logistic_regression_path(X, y, pos_class=class_, Cs=[C_],
-                      l1_ratio=self.l1_ratio, fit_intercept=self.fit_intercept,
-                      tol=self.tol, verbose=self.verbose, solver=solver,
-                      max_iter=self.max_iter,
-                      class_weight=self.class_weight, check_input=False,
-                      random_state=self.random_state, coef=warm_start_coef_,
-                      penalty=penalty, max_squared_sum=max_squared_sum))
+            fold_coefs_.append(_logistic_regression_path(X, y, Cs=C_s, fit_intercept=self.fit_intercept,
+                                                         tol=self.tol, verbose=self.verbose,
+                                                         max_iter=self.max_iter, coef=warm_start_coef_,
+                                                         pos_class=class_))
 
         fold_coefs_, _, n_iter_ = zip(*fold_coefs_)
         self.n_iter_ = np.asarray(n_iter_, dtype=np.int32)[:, 0]
@@ -213,7 +216,9 @@ class LogisticRegression:
             indices = (scores > 0).astype(np.int)
         else:
             indices = scores.argmax(axis=1)
-        return self.classes_[indices]
+        res = self.classes_[indices]
+        print('output', res)
+        return res
 
     def score(self, X, y, sample_weight=None):
         """
@@ -223,7 +228,6 @@ class LogisticRegression:
         which is a harsh metric since you require for each sample that
         each label set be correctly predicted.
         """
-        from sklearn.metrics import accuracy_score
         return accuracy_score(y, self.predict(X), sample_weight=sample_weight)
 
 

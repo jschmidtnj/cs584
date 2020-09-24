@@ -5,7 +5,7 @@ training
 
 from typing import List
 from sklearn.model_selection import StratifiedKFold
-from sklearn.linear_model import LogisticRegression as LogisticRegression2
+from sklearn.linear_model import LogisticRegression as LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report
@@ -15,7 +15,9 @@ import pandas as pd
 import numpy as np
 from loguru import logger
 import matplotlib.pyplot as plt
-from logit2 import LogisticRegression as LogisticRegression
+from logit2 import LogisticRegression as LogisticRegression2
+from logit3 import LogisticRegression as LogisticRegression3
+from logit4 import LogisticRegression as LogisticRegression4
 
 TEST_SIZE = 0.2
 NUM_EPOCHS = 5
@@ -46,7 +48,7 @@ def train(clean_data: pd.DataFrame, label_list: List[BookType]) -> None:
     skf = StratifiedKFold(n_splits=num_splits,
                           shuffle=True, random_state=random_state)
 
-    logit = LogisticRegression(
+    logit = LogisticRegression2(
         solver='lbfgs', penalty='l2', random_state=random_state,
         n_jobs=num_splits, verbose=False, warm_start=True)
 

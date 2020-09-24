@@ -25,12 +25,14 @@ def list_files(directory, extension) -> List[str]:
     """
     return [f for f in listdir(directory) if f.endswith('.' + extension)]
 
+
 def category_to_multiclass(n, num_classes):
     output = np.zeros(num_classes)
     # output = [0]*num_classes
     output[n] = 1
 
     return output
+
 
 def load_train_test():
     data_path = "data"
@@ -43,7 +45,8 @@ def load_train_test():
     for doc in raw_data_fliles:
         with open(f"{data_path}/{doc}", 'r') as f:
             contents = f.read()
-            author = re.search(r'Author:\s[A-Z][a-z]+\s[A-Z][a-z]+', contents).group().replace("Author: ", "")
+            author = re.search(
+                r'Author:\s[A-Z][a-z]+\s[A-Z][a-z]+', contents).group().replace("Author: ", "")
 
             contents = contents.split("\n\n")
 
@@ -56,6 +59,7 @@ def load_train_test():
 
     return paragraphs, labels, len(paragraphs)
 
+
 def encode_labels(labels):
     labelencoder = LabelEncoder()
     labelencoder.fit(labels)
@@ -63,15 +67,18 @@ def encode_labels(labels):
     num_classes = len(classes)
     labels = labelencoder.transform(labels)
 
-    labels = np.asarray([category_to_multiclass(label, num_classes) for label in labels])
+    labels = np.asarray([category_to_multiclass(
+        label, num_classes) for label in labels])
 
     return labels, classes, num_classes
+
 
 def vectorize_tfidf(paragraphs):
     vectorizer = TfidfVectorizer()
     vectors = vectorizer.fit_transform(paragraphs)
 
     return vectors
+
 
 def main():
     logger.info("Loading base dataset")
@@ -96,11 +103,12 @@ def main():
     logger.success(f"Type of X[0]: {type(X[0])}")
 
     logger.info("Splitting to train test")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42, test_size=0.2)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=42, test_size=0.2)
     # X_train = np.transpose(X_train)
     # X_test = np.transpose(X_test)
     logger.success(f"Shape X_train: {X_train.shape}")
-    logger.success(f"Shape of y_train: {y_train.shape}")    
+    logger.success(f"Shape of y_train: {y_train.shape}")
     logger.success(f"Shape of X_test: {X_test.shape}")
     logger.success(f"Shape of y_test: {y_test.shape}")
 
@@ -123,7 +131,6 @@ def main():
     logger.success(f"Shape of b (Bias): {b.shape}")
     logger.success(f"Shape of B (Bias matrix for iteration): {B.shape}")
 
-
     def get_accuracy(X, Y):
         """
         Calculate the accuracy based off of a set of inputs and their associated labels
@@ -136,7 +143,7 @@ def main():
             # if predict(Xi) == np.argmax(Yi):
             if np.argmax(net(Xi, multi=False)) == np.argmax(Yi):
                 correct += 1
-        
+
         return correct / total
 
     def softmax(x, multi=True):
@@ -152,7 +159,7 @@ def main():
 
     def regularization(index, k):
         return lmda * (W[index, k]**2)
-    
+
     def regularization_gradient(k):
         return 2 * lmda * W[:, k]
 
@@ -161,8 +168,8 @@ def main():
         y_linear = np.add(np.dot(Xi, W[:, k]), b[0, k])
         # y_linear (1 x 1)
         return softmax(y_linear)
-    
-    def net(Xi, multi=(not (M==1))):
+
+    def net(Xi, multi=(not (M == 1))):
         # Xi (1 x V) W (V x K) b (1 x K)
         y_linear = np.add(np.dot(Xi, W), b[0])
         # y_linear (1 x K)
@@ -173,7 +180,7 @@ def main():
     dataset_length = y_train.shape[0]
     dataset_indexes = np.arange(dataset_length)
 
-    # yhat has to be made outside of the batch 
+    # yhat has to be made outside of the batch
     for epoch in range(epochs):
         logger.info(f"Epoch: {epoch}")
         epoch_loss = 0
@@ -189,7 +196,7 @@ def main():
             # X and Y are our batches of length M
             # Shape of X: (M x V)
             # Shape of Y: (M x K)
-            # need to stop through all of the examples in the batch 
+            # need to stop through all of the examples in the batch
             for index, Xi, Yi in zip(indexes, X, Y):
                 # Xi is a single example of shape (1 x V)
                 # Yi is a single label of shape (1 x K)
@@ -197,37 +204,24 @@ def main():
                 # yhat is our prediction of shape (1 x K)
                 Xi = Xi.reshape(1, V)
                 Yi = Yi.reshape(1, K)
-                yhat = net(Xi, multi=(not (M==1))).reshape(1, K)
+                yhat = net(Xi, multi=(not (M == 1))).reshape(1, K)
                 # logger.info(f"yhat: {yhat}")
                 k_true = np.where(Yi[0] == 1)
                 # Prediction component of Loss can be easily updated with a matrix operation
                 epoch_loss += -(1/N) * (np.dot(np.transpose(Yi), yhat))
                 # Prediction component of epoch gradient can be easily updated with a matrix operation
                 # only update the column corresponding to the correct output for this step - substitute for product with Yi
-                epoch_gradient[:, k_true] += (np.transpose(Xi) @ (1-yhat))[:, k_true]
+                epoch_gradient[:,
+                               k_true] += (np.transpose(Xi) @ (1-yhat))[:, k_true]
                 # for all classes
                 for k in range(K):
                     # regularization part of loss has to be updated per class
                     epoch_loss += regularization(index, k)
-                    epoch_gradient[:, k] +=  regularization_gradient(k)
+                    epoch_gradient[:, k] += regularization_gradient(k)
         logger.info(f"weights before: \n{W}")
         W = W - lr * epoch_gradient
         logger.success(f"weights after: \n{W}")
         logger.error(f"Accuracy: {get_accuracy(X_test, y_test)}")
-                    
-
-                    
-
-                
-
-
-
-
-
-
-
-
-
 
     # for epoch in range(epochs):
     #     logger.info(f"Epoch: {epoch}")
@@ -265,11 +259,10 @@ def main():
 
     # logger.info(f"Weights shape: {W.shape}")
     # logger.info(f"Bias shape: {B.shape}")
-    
+
     # logger.info("Checking final accuracy")
     # accuracy = get_accuracy(X_test, y_test)
     # logger.success(f"Accuracy: {accuracy}")
-
 
     # testX = X_train[0]
     # testY = y_train[0]
@@ -279,7 +272,6 @@ def main():
     # net_output = net(testX)
     # logger.info(f"net output: {net_output[0]}")
     # logger.info(f"net prediction: {np.argmax(net_output[0])}")
-
 
 
 if __name__ == "__main__":
