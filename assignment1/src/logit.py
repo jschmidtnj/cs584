@@ -13,10 +13,10 @@ from books import start_end_map
 
 def softmax(x, multi=True):
     """
-    Compute softmax
+    get the softmax
     """
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=1 if multi else 0)
+    ex = np.exp(x - np.max(x))
+    return ex / ex.sum(axis=1 if multi else 0)
 
 
 def _process_labels(y_train):
@@ -35,7 +35,7 @@ class LogisticRegression:
     logistic regression
     """
 
-    def __init__(self, epochs=100, batch_size=32, lmbda=1e-6, plot_epoch_iter=1, **_args):
+    def __init__(self, epochs=100, batch_size=32, lmbda=1e-4, plot_epoch_iter=1, **_args):
         """
         logistic regression init
         """
@@ -59,9 +59,7 @@ class LogisticRegression:
         """
         Define out network and obtain a predicted output for a set of M inputs ( V > K )
         """
-        # Xi (1 x V) W (V x K) b (1 x K)
         y_linear = np.add(np.dot(Xi, self.weights), self.bias_vector[0])
-        # y_linear (1 x K)
         return softmax(y_linear, multi=multi)
 
     def score(self, X, y):
@@ -94,15 +92,15 @@ class LogisticRegression:
         y_train = _process_labels(y_train)
         N = X_train_text.shape[0]  # dataset length
         V = X_train_text.shape[1]  # vocabulary length
-        K = len(start_end_map.keys())           # num of classes
+        K = len(start_end_map.keys())  # num of classes
         lr = 1e-2  # Learning rate
-        self.weights = np.random.rand((V, K))  # weight vector
-        self.bias_vector = np.random.rand((1, K))    # bias vector
+        self.weights = np.random.rand(V, K)  # weight vector
+        self.bias_vector = np.random.rand(1, K)  # bias vector
         self.bias_matrix = np.repeat(
             self.bias_vector, self.batch_size, axis=0)  # bias matrix
 
-        dataset_length = X_train_text.shape[0]
-        dataset_indexes = np.arange(dataset_length)
+        dataset_len = X_train_text.shape[0]
+        dataset_indexes = np.arange(dataset_len)
         training_scores = []
         testing_scores = []
         for epoch in range(self.epochs):
@@ -119,19 +117,16 @@ class LogisticRegression:
                     Yi = Yi.reshape(1, K)
                     yhat = self._net(Xi, multi=(
                         self.batch_size != 1)).reshape(1, K)
-                    # logger.info(f"yhat: {yhat}")
                     k_true = np.where(Yi[0] == 1)
-                    # Prediction component of Loss can be easily updated with a matrix operation
+                    # Prediction component of loss update
                     epoch_loss += -(1/N) * (np.dot(np.transpose(Yi), yhat))
-                    # logger.info(f"Epoch loss: {epoch_loss}")
-                    # Prediction component of epoch gradient can be easily updated with a matrix operation
-                    # only update the column corresponding to the correct output for this step - substitute for product with Yi
+                    # Prediction component of epoch gradient update
                     a = (np.transpose(Xi) @ (1-yhat))[:, k_true]
                     epoch_gradient[:,
                                    k_true] += a
                     # for all classes
                     for k in range(K):
-                        # regularization part of loss has to be updated per class
+                        # regularization update per class
                         epoch_loss += self._regularization(index, k)
                         epoch_gradient[:,
                                        k] += self._regularization_gradient(k)

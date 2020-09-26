@@ -11,52 +11,52 @@ from scipy.optimize import minimize
 from scipy.special import logsumexp
 
 
-def squared_norm(x):
+def _squared_norm(data):
     """Squared Euclidean norm of x. equivalent to norm(x) ** 2."""
-    x = np.ravel(x, order='K')
-    return np.dot(x, x)
+    data = np.ravel(data, order='K')
+    return np.dot(data, data)
 
 
-def get_loss(w, X, Y, alpha, sample_weight):
+def _get_loss(weights, X, Y, lmbda, sample_weight):
     """Computes the loss."""
     num_classes = Y.shape[1]
     num_features = X.shape[1]
-    fit_intercept = w.size == (num_classes * (num_features + 1))
-    w = w.reshape(num_classes, -1)
+    fit_intercept = weights.size == (num_classes * (num_features + 1))
+    weights = weights.reshape(num_classes, -1)
     sample_weight = sample_weight[:, np.newaxis]
     if fit_intercept:
-        intercept = w[:, -1]
-        w = w[:, :-1]
+        intercept = weights[:, -1]
+        weights = weights[:, :-1]
     else:
         intercept = 0
-    p = safe_sparse_dot(X, w.T)
-    p += intercept
-    p -= logsumexp(p, axis=1)[:, np.newaxis]
-    loss = -(sample_weight * Y * p).sum()
-    loss += 0.5 * alpha * squared_norm(w)
-    p = np.exp(p, p)
-    return loss, p, w
+    prob = safe_sparse_dot(X, weights.T)
+    prob += intercept
+    prob -= logsumexp(prob, axis=1)[:, np.newaxis]
+    loss = -(sample_weight * Y * prob).sum()
+    loss += 0.5 * lmbda * _squared_norm(weights)
+    prob = np.exp(prob, prob)
+    return loss, prob, weights
 
 
-def loss_grad(w, X, Y, alpha, sample_weight):
+def _loss_gradient(weights, X, Y, lmbda, sample_weight):
     """Computes loss and class probabilities."""
     num_classes = Y.shape[1]
     num_features = X.shape[1]
-    fit_intercept = (w.size == num_classes * (num_features + 1))
-    grad = np.zeros((num_classes, num_features + bool(fit_intercept)),
-                    dtype=X.dtype)
-    loss, p, w = get_loss(w, X, Y, alpha, sample_weight)
+    fit_intercept = (weights.size == num_classes * (num_features + 1))
+    gradient = np.zeros((num_classes, num_features + bool(fit_intercept)),
+                        dtype=X.dtype)
+    loss, prob, weights = _get_loss(weights, X, Y, lmbda, sample_weight)
     sample_weight = sample_weight[:, np.newaxis]
-    diff = sample_weight * (p - Y)
-    grad[:, :num_features] = safe_sparse_dot(diff.T, X)
-    grad[:, :num_features] += alpha * w
+    diff = sample_weight * (prob - Y)
+    gradient[:, :num_features] = safe_sparse_dot(diff.T, X)
+    gradient[:, :num_features] += lmbda * weights
     if fit_intercept:
-        grad[:, -1] = diff.sum(axis=0)
-    return loss, grad.ravel(), p
+        gradient[:, -1] = diff.sum(axis=0)
+    return loss, gradient.ravel(), prob
 
 
-def _logistic_regression(X, y, lmbda=1, fit_intercept=True,
-                         max_iter=100, tol=1e-4):
+def _run_logistic_regression(X, y, lmbda=1, fit_intercept=True,
+                             max_iter=100, tol=1e-4):
     """
     main logistic regression training function
     """
@@ -67,9 +67,9 @@ def _logistic_regression(X, y, lmbda=1, fit_intercept=True,
 
     sample_weight = np.ones(X.shape[0])
 
-    le = LabelEncoder()
-    class_weight_ = np.ones(len(classes))
-    sample_weight *= class_weight_[le.fit_transform(y)]
+    label_encoder = LabelEncoder()
+    class_weight = np.ones(len(classes))
+    sample_weight *= class_weight[label_encoder.fit_transform(y)]
 
     lbin = LabelBinarizer()
     Y_multi = lbin.fit_transform(y)
@@ -85,8 +85,8 @@ def _logistic_regression(X, y, lmbda=1, fit_intercept=True,
     training_losses = []
     validation_losses = []
 
-    def callback(w, X, Y, alpha, sample_weight):
-        res = loss_grad(w, X, Y, alpha, sample_weight)[0:2]
+    def callback(weights, X, Y, lmbda, sample_weights):
+        res = _loss_gradient(weights, X, Y, lmbda, sample_weights)[0:2]
         training_losses.append(res[0])
         validation_losses.append(res[0])
         return res
@@ -141,8 +141,8 @@ class BatchLogisticRegression:
         self.coefficients = []
         self.intercept = np.zeros(num_classes)
 
-        res = [_logistic_regression(X, y, lmbda=self.lmbda, fit_intercept=self.fit_intercept,
-                                    tol=self.tol, max_iter=self.max_iter)]
+        res = [_run_logistic_regression(X, y, lmbda=self.lmbda, fit_intercept=self.fit_intercept,
+                                        tol=self.tol, max_iter=self.max_iter)]
 
         fold_coefficients, _, training_losses, validation_losses = zip(
             *res)
@@ -159,7 +159,7 @@ class BatchLogisticRegression:
         """
         return self.training_losses, self.validation_losses
 
-    def decision_function(self, X):
+    def _main_decision_func(self, X):
         """
         Predict confidence scores for samples.
         """
@@ -171,7 +171,7 @@ class BatchLogisticRegression:
         """
         Predict class labels for samples in X.
         """
-        scores = self.decision_function(X)
+        scores = self._main_decision_func(X)
         if len(scores.shape) == 1:
             indices = (scores > 0).astype(np.int)
         else:
