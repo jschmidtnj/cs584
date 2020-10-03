@@ -83,7 +83,7 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
 
     for iter in range(start_iter + 1, iterations + 1):
         # You might want to print the progress every few iterations.
-
+        # https://www.pyimagesearch.com/2016/10/17/stochastic-gradient-descent-sgd-with-python/
         loss = None
         ### YOUR CODE HERE
 
