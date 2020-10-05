@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+check gradients
+"""
 
 import numpy as np
 import random
@@ -16,7 +19,7 @@ def gradcheck_naive(f, x, gradientText):
 
     rndstate = random.getstate()
     random.setstate(rndstate)
-    fx, grad = f(x) # Evaluate function value at original point
+    fx, grad = f(x)  # Evaluate function value at original point
     h = 1e-4        # Do not change this!
 
     # Iterate over all indexes ix in x to check the gradient.
@@ -24,10 +27,10 @@ def gradcheck_naive(f, x, gradientText):
     while not it.finished:
         ix = it.multi_index
 
-        x[ix] += h # increment by h
+        x[ix] += h  # increment by h
         random.setstate(rndstate)
-        fxh, _ = f(x) # evalute f(x + h)
-        x[ix] -= 2 * h # restore to previous value (very important!)
+        fxh, _ = f(x)  # evalute f(x + h)
+        x[ix] -= 2 * h  # restore to previous value (very important!)
         random.setstate(rndstate)
         fxnh, _ = f(x)
         x[ix] += h
@@ -37,11 +40,12 @@ def gradcheck_naive(f, x, gradientText):
         reldiff = abs(numgrad - grad[ix]) / max(1, abs(numgrad), abs(grad[ix]))
         if reldiff > 1e-5:
             print("Gradient check failed for %s." % gradientText)
-            print("First gradient error found at index %s in the vector of gradients" % str(ix))
+            print(
+                "First gradient error found at index %s in the vector of gradients" % str(ix))
             print("Your gradient: %f \t Numerical gradient: %f" % (
                 grad[ix], numgrad))
             return
 
-        it.iternext() # Step to next dimension
+        it.iternext()  # Step to next dimension
 
     print("Gradient check passed!")

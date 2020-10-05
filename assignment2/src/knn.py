@@ -4,7 +4,7 @@ KNN model
 """
 
 import numpy as np
-from typing import List
+
 
 def _get_distance_euclidian(row1: np.array, row2: np.array):
     """
@@ -18,6 +18,7 @@ def _get_distance_euclidian(row1: np.array, row2: np.array):
         distance += (row1[i] - row2[i]) ** 2
     return np.sqrt(distance)
 
+
 def _get_distance_cosine(row1: np.array, row2: np.array) -> float:
     """
     _get_distance
@@ -27,7 +28,9 @@ def _get_distance_cosine(row1: np.array, row2: np.array) -> float:
     """
     return np.dot(row1, row2) / (np.linalg.norm(row1) * np.linalg.norm(row2))
 
+
 equal_to_dist: float = 1e-8
+
 
 def run_knn(vector: np.array, matrix: np.array, k: int, tokens) -> np.array:
     """

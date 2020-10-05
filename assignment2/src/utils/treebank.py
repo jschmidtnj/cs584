@@ -1,13 +1,40 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""
+treebank data loader
+"""
 
-import pickle
-import numpy as np
-import os
 import random
+import numpy as np
+
+# pylint: disable=access-member-before-definition
+# pylint: disable=attribute-defined-outside-init
+
+
+def _categorify(label):
+    """
+    create categories
+    """
+    if label <= 0.2:
+        return 0
+    elif label <= 0.4:
+        return 1
+    elif label <= 0.6:
+        return 2
+    elif label <= 0.8:
+        return 3
+    else:
+        return 4
+
 
 class StanfordSentiment:
-    def __init__(self, path=None, tablesize = 1000000):
+    """
+    load stanford dataset
+    """
+
+    def __init__(self, path=None, tablesize=1000000):
+        """
+        init func
+        """
         if not path:
             path = "utils/datasets/stanfordSentimentTreebank"
 
@@ -15,6 +42,9 @@ class StanfordSentiment:
         self.tablesize = tablesize
 
     def tokens(self):
+        """
+        get the tokens
+        """
         if hasattr(self, "_tokens") and self._tokens:
             return self._tokens
 
@@ -47,6 +77,9 @@ class StanfordSentiment:
         return self._tokens
 
     def sentences(self):
+        """
+        get sentences
+        """
         if hasattr(self, "_sentences") and self._sentences:
             return self._sentences
 
@@ -69,6 +102,9 @@ class StanfordSentiment:
         return self._sentences
 
     def numSentences(self):
+        """
+        get num sentences
+        """
         if hasattr(self, "_numSentences") and self._numSentences:
             return self._numSentences
         else:
@@ -76,6 +112,9 @@ class StanfordSentiment:
             return self._numSentences
 
     def allSentences(self):
+        """
+        get all sentences
+        """
         if hasattr(self, "_allsentences") and self._allsentences:
             return self._allsentences
 
@@ -83,8 +122,8 @@ class StanfordSentiment:
         rejectProb = self.rejectProb()
         tokens = self.tokens()
         allsentences = [[w for w in s
-            if 0 >= rejectProb[tokens[w]] or random.random() >= rejectProb[tokens[w]]]
-            for s in sentences * 30]
+                         if rejectProb[tokens[w]] <= 0 or random.random() >= rejectProb[tokens[w]]]
+                        for s in sentences * 30]
 
         allsentences = [s for s in allsentences if len(s) > 1]
 
@@ -93,6 +132,9 @@ class StanfordSentiment:
         return self._allsentences
 
     def getRandomContext(self, C=5):
+        """
+        get random context
+        """
         allsent = self.allSentences()
         sentID = random.randint(0, len(allsent) - 1)
         sent = allsent[sentID]
@@ -111,6 +153,9 @@ class StanfordSentiment:
             return self.getRandomContext(C)
 
     def sent_labels(self):
+        """
+        get sent labels
+        """
         if hasattr(self, "_sent_labels") and self._sent_labels:
             return self._sent_labels
 
@@ -119,7 +164,8 @@ class StanfordSentiment:
         with open(self.path + "/dictionary.txt", "r") as f:
             for line in f:
                 line = line.strip()
-                if not line: continue
+                if not line:
+                    continue
                 splitted = line.split("|")
                 dictionary[splitted[0].lower()] = int(splitted[1])
                 phrases += 1
@@ -133,7 +179,8 @@ class StanfordSentiment:
                     continue
 
                 line = line.strip()
-                if not line: continue
+                if not line:
+                    continue
                 splitted = line.split("|")
                 labels[int(splitted[0])] = float(splitted[1])
 
@@ -141,13 +188,17 @@ class StanfordSentiment:
         sentences = self.sentences()
         for i in range(self.numSentences()):
             sentence = sentences[i]
-            full_sent = " ".join(sentence).replace('-lrb-', '(').replace('-rrb-', ')')
+            full_sent = " ".join(sentence).replace(
+                '-lrb-', '(').replace('-rrb-', ')')
             sent_labels[i] = labels[dictionary[full_sent]]
 
         self._sent_labels = sent_labels
         return self._sent_labels
 
     def dataset_split(self):
+        """
+        split the dataset
+        """
         if hasattr(self, "_split") and self._split:
             return self._split
 
@@ -166,36 +217,42 @@ class StanfordSentiment:
         return self._split
 
     def getRandomTrainSentence(self):
+        """
+        get random training sentence
+        """
         split = self.dataset_split()
         sentId = split[0][random.randint(0, len(split[0]) - 1)]
-        return self.sentences()[sentId], self.categorify(self.sent_labels()[sentId])
-
-    def categorify(self, label):
-        if label <= 0.2:
-            return 0
-        elif label <= 0.4:
-            return 1
-        elif label <= 0.6:
-            return 2
-        elif label <= 0.8:
-            return 3
-        else:
-            return 4
+        return self.sentences()[sentId], _categorify(self.sent_labels()[sentId])
 
     def getDevSentences(self):
+        """
+        create sentences for dev
+        """
         return self.getSplitSentences(2)
 
     def getTestSentences(self):
+        """
+        get test sentences
+        """
         return self.getSplitSentences(1)
 
     def getTrainSentences(self):
+        """
+        get training sentences
+        """
         return self.getSplitSentences(0)
 
     def getSplitSentences(self, split=0):
+        """
+        split the sentences
+        """
         ds_split = self.dataset_split()
-        return [(self.sentences()[i], self.categorify(self.sent_labels()[i])) for i in ds_split[split]]
+        return [(self.sentences()[i], _categorify(self.sent_labels()[i])) for i in ds_split[split]]
 
     def sampleTable(self):
+        """
+        get a sample table
+        """
         if hasattr(self, '_sampleTable') and self._sampleTable is not None:
             return self._sampleTable
 
@@ -228,6 +285,9 @@ class StanfordSentiment:
         return self._sampleTable
 
     def rejectProb(self):
+        """
+        reject prob
+        """
         if hasattr(self, '_rejectProb') and self._rejectProb is not None:
             return self._rejectProb
 
@@ -245,4 +305,7 @@ class StanfordSentiment:
         return self._rejectProb
 
     def sampleTokenIdx(self):
+        """
+        get sample token index
+        """
         return self.sampleTable()[random.randint(0, self.tablesize - 1)]

@@ -1,13 +1,15 @@
 #!/usr/bin/env python
+"""
+stochastic gradient descent
+"""
 
 # Save parameters every a few SGD iterations as fail-safe
-SAVE_PARAMS_EVERY = 5000
-
-import pickle
-import glob
-import random
-import numpy as np
 import os.path as op
+import numpy as np
+import random
+import glob
+import pickle
+SAVE_PARAMS_EVERY = 5000
 
 
 def load_saved_params():
@@ -17,9 +19,9 @@ def load_saved_params():
     """
     st = 0
     for f in glob.glob("saved_params_*.npy"):
-        iter = int(op.splitext(op.basename(f))[0].split("_")[2])
-        if (iter > st):
-            st = iter
+        iterator = int(op.splitext(op.basename(f))[0].split("_")[2])
+        if iterator > st:
+            st = iterator
 
     if st > 0:
         params_file = "saved_params_%d.npy" % st
@@ -32,10 +34,13 @@ def load_saved_params():
         return st, None, None
 
 
-def save_params(iter, params):
-    params_file = "saved_params_%d.npy" % iter
+def save_params(iterator, params):
+    """
+    save params to file
+    """
+    params_file = "saved_params_%d.npy" % iterator
     np.save(params_file, params)
-    with open("saved_state_%d.pickle" % iter, "wb") as f:
+    with open("saved_state_%d.pickle" % iterator, "wb") as f:
         pickle.dump(random.getstate(), f)
 
 
@@ -78,35 +83,40 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
     x = x0
 
     if not postprocessing:
-        postprocessing = lambda x: x
+        def postprocessing(x):
+            return x
 
     exploss = None
 
-    for iter in range(start_iter + 1, iterations + 1):
+    for iterator in range(start_iter + 1, iterations + 1):
         # You might want to print the progress every few iterations.
 
         loss, gradient = f(x)
         x -= gradient * step
 
         x = postprocessing(x)
-        if iter % PRINT_EVERY == 0:
+        if iterator % PRINT_EVERY == 0:
             if not exploss:
                 exploss = loss
             else:
                 exploss = .95 * exploss + .05 * loss
-            print("iter %d: %f" % (iter, exploss))
+            print("iter %d: %f" % (iterator, exploss))
 
-        if iter % SAVE_PARAMS_EVERY == 0 and useSaved:
-            save_params(iter, x)
+        if iterator % SAVE_PARAMS_EVERY == 0 and useSaved:
+            save_params(iterator, x)
 
-        if iter % ANNEAL_EVERY == 0:
+        if iterator % ANNEAL_EVERY == 0:
             step *= 0.5
 
     return x
 
 
 def sanity_check():
-    quad = lambda x: (np.sum(x ** 2), x * 2)
+    """
+    run sanity check
+    """
+    def quad(x):
+        return (np.sum(x ** 2), x * 2)
 
     print("Running sanity checks...")
     t1 = sgd(quad, 0.5, 0.01, 1000, PRINT_EVERY=100)

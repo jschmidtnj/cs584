@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+word to vector
+"""
 
 import numpy as np
 import random
@@ -24,7 +27,7 @@ def naiveSoftmaxLossAndGradient(
     centerWordVec,
     outsideWordIdx,
     outsideVectors,
-    dataset
+    _dataset
 ):
     """ Naive Softmax loss & gradient function for word2vec models
 
@@ -122,7 +125,7 @@ def negSamplingLossAndGradient(
     return loss, gradCenterVec, gradOutsideVecs
 
 
-def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
+def skipgram(currentCenterWord, _windowSize, outsideWords, word2Ind,
              centerWordVectors, outsideVectors, dataset,
              word2vecLossAndGradient=naiveSoftmaxLossAndGradient):
     """ Skip-gram model in word2vec
@@ -177,6 +180,9 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
 def word2vec_sgd_wrapper(word2vecModel, word2Ind, wordVectors, dataset,
                          windowSize,
                          word2vecLossAndGradient=naiveSoftmaxLossAndGradient):
+    """
+    wrapper for word2vec sgd
+    """
     batchsize = 50
     loss = 0.0
     grad = np.zeros(wordVectors.shape)

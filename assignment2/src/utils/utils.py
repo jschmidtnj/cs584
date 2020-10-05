@@ -4,13 +4,12 @@ utility functions
 """
 
 import numpy as np
-from glob import glob
 from os.path import abspath, join
-from loguru import logger
 from typing import List, Union
 from pathlib import Path
 
 epsilon = 1e-25
+
 
 def normalizeRows(x: Union[np.array, List[List[float]]]) -> np.array:
     """ Row normalization function
@@ -24,8 +23,8 @@ def normalizeRows(x: Union[np.array, List[List[float]]]) -> np.array:
     """
     x = np.array(x, dtype=np.double)
     x_norm = np.sqrt(np.sum(x**2, axis=1))
-    x_norm = x_norm.reshape((x.shape[0], 1)) # ensure the shape is the same
-    x_norm += epsilon # prevent divide by zero
+    x_norm = x_norm.reshape((x.shape[0], 1))  # ensure the shape is the same
+    x_norm += epsilon  # prevent divide by zero
     x = x / x_norm
     return x
 
@@ -33,7 +32,7 @@ def normalizeRows(x: Union[np.array, List[List[float]]]) -> np.array:
 def softmax(x: Union[np.array, List[List[float]]]) -> np.array:
     """Compute the softmax function for each row of the input x.
     It is crucial that this function is optimized for speed because
-    it will be used frequently in later code. 
+    it will be used frequently in later code.
 
     Arguments:
     x -- A D dimensional vector or N x D dimensional numpy matrix.
@@ -55,6 +54,7 @@ def softmax(x: Union[np.array, List[List[float]]]) -> np.array:
         x = x / np.sum(x, axis=1).reshape(new_shape)
 
     return x
+
 
 def get_relative_path(rel_path: str) -> str:
     """
