@@ -15,7 +15,7 @@ check_changes() {
 
 force_run_command="-f"
 
-script_paths=("assignment1/" )
+script_paths=("assignment1/" "assignment2/")
 
 for path in "${script_paths[@]}"
 do

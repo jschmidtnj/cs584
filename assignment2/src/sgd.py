@@ -9,6 +9,7 @@ import random
 import numpy as np
 import os.path as op
 
+
 def load_saved_params():
     """
     A helper function that loads previously saved parameters and resets
@@ -83,11 +84,9 @@ def sgd(f, x0, step, iterations, postprocessing=None, useSaved=False,
 
     for iter in range(start_iter + 1, iterations + 1):
         # You might want to print the progress every few iterations.
-        # https://www.pyimagesearch.com/2016/10/17/stochastic-gradient-descent-sgd-with-python/
-        loss = None
-        ### YOUR CODE HERE
 
-        ### END YOUR CODE
+        loss, gradient = f(x)
+        x -= gradient * step
 
         x = postprocessing(x)
         if iter % PRINT_EVERY == 0:

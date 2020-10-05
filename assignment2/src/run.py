@@ -3,8 +3,13 @@
 import random
 import numpy as np
 from utils.treebank import StanfordSentiment
-import matplotlib
-matplotlib.use('agg')
+from utils.utils import get_relative_path
+from loguru import logger
+from knn import run_knn
+from matplotlib import use as use_matplotlib
+
+use_matplotlib('agg')
+
 import matplotlib.pyplot as plt
 import time
 
@@ -18,7 +23,7 @@ assert sys.version_info[1] >= 5
 
 # Reset the random seed to make sure that everyone gets the same results
 random.seed(314)
-dataset = StanfordSentiment()
+dataset = StanfordSentiment(path=get_relative_path('data/stanfordSentimentTreebank'))
 tokens = dataset.tokens()
 nWords = len(tokens)
 
@@ -37,6 +42,7 @@ wordVectors = np.concatenate(
     ((np.random.rand(nWords, dimVectors) - 0.5) /
        dimVectors, np.zeros((nWords, dimVectors))),
     axis=0)
+
 wordVectors = sgd(
     lambda vec: word2vec_sgd_wrapper(skipgram, tokens, vec, dataset, C,
         negSamplingLossAndGradient),
@@ -65,7 +71,7 @@ covariance = 1.0 / len(visualizeIdx) * temp.T.dot(temp)
 U,S,V = np.linalg.svd(covariance)
 coord = temp.dot(U[:,0:2])
 
-for i in range(len(visualizeWords)):
+for i, _ in enumerate(visualizeWords):
     plt.text(coord[i,0], coord[i,1], visualizeWords[i],
         bbox=dict(facecolor='green', alpha=0.1))
 
@@ -73,3 +79,13 @@ plt.xlim((np.min(coord[:,0]), np.max(coord[:,0])))
 plt.ylim((np.min(coord[:,1]), np.max(coord[:,1])))
 
 plt.savefig('word_vectors.png')
+
+k_neighbors: int = 4
+inverted_tokens = dict(map(reversed, tokens.items()))
+for i, word in enumerate(visualizeWords):
+    logger.info(f'{i + 1}. running knn for "{word}"')
+    vector = visualizeVecs[i]
+    closest_indices = run_knn(vector, wordVectors, k_neighbors, tokens)
+    logger.info(f'closest indices: {closest_indices}')
+    closest_words = [inverted_tokens[index] for index in closest_indices]
+    logger.info(f'closest words: {closest_words}')
