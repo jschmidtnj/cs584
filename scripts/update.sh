@@ -8,7 +8,7 @@ set -e
 
 cd ..
 
-python_paths=("assignment1" )
+python_paths=("assignment1" "assignment2" "assignment3")
 
 source $(conda info --base)/etc/profile.d/conda.sh
 for path in "${python_paths[@]}"
