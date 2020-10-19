@@ -62,7 +62,8 @@ def clean_tokenize(file_name: Optional[str] = None) -> List[pd.DataFrame]:
                     else:
                         if word in unknown_token_list:
                             word = unknown_token
-                        sentence.append(word)
+                        if word not in unwanted_words:
+                            sentence.append(word)
                 sentences.append(sentence)
         logger.info(f'read {line_number} lines from {file_name}')
         data: pd.DataFrame = pd.DataFrame({

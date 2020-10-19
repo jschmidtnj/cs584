@@ -332,12 +332,15 @@ def n_grams_predict_next(name: str,
     if num_lines_predict is not None:
         predict_sentences = predict_sentences[:num_lines_predict]
 
+    check_probability_smoothing: List[SmoothingType] = [SmoothingType.basic]
+
+    logger.success('[[<words>]] = predicted words:')
+
     sum_probability_log: float = 0.
     count_all_predict: int = 0
 
     for i, sentence in enumerate(predict_sentences):
         full_sentence = sentence.copy()
-        logger.info(f"{i + 1}. input: {' '.join(full_sentence)}")
         for _ in range(num_predict):
             last_words = full_sentence[-n_grams:]
             sequence = ' '.join(last_words)
@@ -346,7 +349,7 @@ def n_grams_predict_next(name: str,
                 sequence, smoothing)
             sum_probability = sum(elem[1] for elem in probabilities)
             # logger.info(f'probabilities: sum: {sum_probability}, all: {probabilities}')
-            if smoothing in [SmoothingType.basic]:
+            if smoothing in check_probability_smoothing:
                 # for not-unseen outputs, check to
                 # make sure sum is approximately 1
                 assert np.isclose(
@@ -359,7 +362,8 @@ def n_grams_predict_next(name: str,
                 sum_probability_log += np.log(prob)
                 count_all_predict += 1
 
-        logger.info(f"predicted: {' '.join(full_sentence[len(sentence):])}")
+        logger.info(f"{i + 1}. {' '.join(sentence)} [[{' '.join(full_sentence[len(sentence):])}]]")
+
     if count_all_predict == 0:
         logger.info('no predictions, no perplexity')
     else:
