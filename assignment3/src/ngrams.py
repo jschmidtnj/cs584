@@ -86,6 +86,7 @@ class NGramsModel:
         # number of sequences that occur n-times
         # i.e. N_1 is the number of n-grams that occur 1 time
         self.count_map: Optional[Dict[int, int]] = None
+
         # sum of all counts
         self.total_count: Optional[int] = None
         # model of n-grams
@@ -125,6 +126,13 @@ class NGramsModel:
         self.create_count_map()
         self.create_total_count()
 
+    @staticmethod
+    def _basic_probability(count: int, sequence_total_count: int) -> float:
+        """
+        compute the probability for basic n-grams
+        """
+        return float(count) / sequence_total_count
+
     def _good_turing_smoothing_probability(self, count: int, sequence: str,
                                            sequence_total_count: int) -> float:
         """
@@ -142,28 +150,32 @@ class NGramsModel:
         next_count_index = count + 1
         next_count: Optional[float] = None
         if next_count_index not in self.count_map:
-            # this should not ever happen
+            # this happens when N_{c+1} is 0
+            # this can make the total probability not equal to 1
             next_count = 0.
         else:
             next_count = float(self.count_map[next_count_index])
 
         new_count: Optional[float] = None
         new_count = (count + 1) * next_count / self.count_map[count]
-        prob = new_count / sequence_total_count
-        # print(prob)
-        return prob
+        probability = new_count / sequence_total_count
+        return probability
 
-    def _kneser_ney_smoothing_probability(self, count: int) -> float:
+    def _get_probabilities_kneser_ney(self, _sequence_input: str) -> List[Tuple[str, float]]:
         """
         run kneser ney smoothing algorithm
         """
-        return 0.
+        # TODO - create this new algorithm
+        return [(unseen_output, 1.0)]
 
     def get_probabilities(self, sequence_input: str,
                           smoothing_type: SmoothingType) -> List[Tuple[str, float]]:
         """
         get all probabilities of next elem given sequence
         """
+        if smoothing_type == SmoothingType.kneser_ney:
+            return self._get_probabilities_kneser_ney(sequence_input)
+
         sequence_total_count: Optional[int] = None
         current_counts: Optional[List[Tuple[str, int]]] = None
         if sequence_input not in self.model:
@@ -183,12 +195,14 @@ class NGramsModel:
             probability: Optional[float] = None
 
             if smoothing_type == SmoothingType.basic:
-                probability = float(count) / sequence_total_count
+                probability = self._basic_probability(
+                    count, sequence_total_count)
             elif smoothing_type == SmoothingType.good_turing:
                 probability = self._good_turing_smoothing_probability(
                     count, sequence, sequence_total_count)
-            elif smoothing_type == SmoothingType.kneser_ney:
-                probability = self._kneser_ney_smoothing_probability(count)
+            else:
+                raise RuntimeError(
+                    f'invalid smoothing type {smoothing_type.name} provided')
 
             current_counts[i] = sequence, probability
 
@@ -280,19 +294,20 @@ def n_grams_train(name: str, file_name: Optional[str] = None,
     return n_grams_res
 
 
-def n_grams_predict_next(file_name: Optional[str] = None,
+def n_grams_predict_next(name: str,
+                         file_name: Optional[str] = None,
                          model: Dict[str, NGramsSequence] = None,
                          clean_input_file: Optional[str] = None,
                          clean_input_data: Optional[pd.DataFrame] = None,
-                         num_lines_predict: int = 30,
+                         num_lines_predict: Optional[int] = None,
                          n_grams: int = default_n_grams,
                          num_predict: int = 1,
                          smoothing: SmoothingType = SmoothingType.basic) -> None:
     """
-    predict the next word in the set
+    predict the next word(s) in the set
     """
 
-    logger.success(f'predicting with {smoothing.name}')
+    logger.success(f'predicting with {smoothing.name} for {name}')
 
     if file_name is None and model is None:
         raise ValueError('no file name or model provided')
@@ -314,30 +329,43 @@ def n_grams_predict_next(file_name: Optional[str] = None,
             sentences_key: literal_eval})
 
     predict_sentences: List[List[str]] = clean_input_data[sentences_key]
+    if num_lines_predict is not None:
+        predict_sentences = predict_sentences[:num_lines_predict]
 
-    for i, sentence in enumerate(predict_sentences[:num_lines_predict]):
+    sum_probability_log: float = 0.
+    count_all_predict: int = 0
+
+    for i, sentence in enumerate(predict_sentences):
         full_sentence = sentence.copy()
+        logger.info(f"{i + 1}. input: {' '.join(full_sentence)}")
         for _ in range(num_predict):
             last_words = full_sentence[-n_grams:]
             sequence = ' '.join(last_words)
 
             probabilities = model.get_probabilities(
                 sequence, smoothing)
-
-            current_output, _prob = probabilities[0]
-            if current_output != unseen_output:
+            sum_probability = sum(elem[1] for elem in probabilities)
+            # logger.info(f'probabilities: sum: {sum_probability}, all: {probabilities}')
+            if smoothing in [SmoothingType.basic]:
                 # for not-unseen outputs, check to
                 # make sure sum is approximately 1
-                sum_probability = sum(elem[1] for elem in probabilities)
-                # print(probabilities)
                 assert np.isclose(
                     sum_probability, 1), f'probability of {sum_probability} is not close to 1'
 
-            current_output, _prob = probabilities[0]
+            current_output, prob = probabilities[0]
             full_sentence.append(current_output)
+            # if not unseen, add to perplexity calculation
+            if current_output != unseen_output:
+                sum_probability_log += np.log(prob)
+                count_all_predict += 1
 
-        logger.info(f"{i + 1}. input: {' '.join(sentence)}, "
-                    + f"predicted: {' '.join(full_sentence[len(sentence):])}")
+        logger.info(f"predicted: {' '.join(full_sentence[len(sentence):])}")
+    if count_all_predict == 0:
+        logger.info('no predictions, no perplexity')
+    else:
+        total_loss = -1 * sum_probability_log
+        perplexity: float = np.exp(total_loss / count_all_predict)
+        logger.info(f"perplexity: {perplexity}")
 
 
 if __name__ == '__main__':
