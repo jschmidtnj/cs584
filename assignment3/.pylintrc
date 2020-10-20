@@ -21,4 +21,5 @@ disable =
     duplicate-code,
     fixme,
     too-few-public-methods,
-    too-many-statements
+    too-many-statements,
+    dangerous-default-value

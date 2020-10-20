@@ -2,9 +2,14 @@
 
 set -e
 
-output=Assignment1_Schmidt_Joshua.zip
+output=Assignment3_Schmidt_Joshua.zip
 
 rm -f "$output"
 
-zip -r "$output" *.md environment.yml src proof data \
-  -x \*\*/__pycache__/\* \*\*/.ipynb_checkpoints/\* data/\*.txt
+report_file=report.pdf
+
+pandoc --pdf-engine=xelatex -o "$report_file" report.md
+
+zip -r "$output" *.md environment.yml src proof output "$report_file" \
+  data/clean_data/.gitignore data/raw_data/.gitignore data/models/.gitignore \
+  -x \*\*/__pycache__/\* \*\*/.ipynb_checkpoints/\*

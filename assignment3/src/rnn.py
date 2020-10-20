@@ -6,13 +6,14 @@ rnn (rnn.py)
 from __future__ import annotations
 
 from sys import argv
-from typing import List, Optional, Tuple, Any
+from typing import List, Optional, Any, Dict
 from utils import file_path_relative
 from variables import sentences_key, clean_data_folder, models_folder, \
-    unknown_token, rnn_folder, text_vectorization_folder, rnn_file_name
+    rnn_folder, text_vectorization_folder, rnn_file_name, output_folder
 from loguru import logger
 from ast import literal_eval
 import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -30,6 +31,52 @@ epochs = 10
 
 # window size in rnn
 window_size: int = 20
+
+
+class PlotTrain(tf.keras.callbacks.Callback):
+    """
+    plot for training results
+    """
+
+    def __init__(self, name: str):
+        super().__init__()
+        self.losses = []
+        self.accuracy = []
+        self.logs = []
+        self.name = name
+
+    def on_train_begin(self, logs=None):
+        """
+        initialize
+        """
+        self.losses: List[float] = []
+        self.accuracy: List[float] = []
+        self.logs: List[Dict[str, Any]] = []
+
+    def on_epoch_end(self, epoch, logs=None):
+        """
+        runs on end of each epoch
+        """
+        if logs is None:
+            return
+        self.logs.append(logs)
+        self.losses.append(logs.get('loss'))
+        self.accuracy.append(logs.get('accuracy'))
+
+        if len(self.losses) > 1:
+            nums = np.arange(0, len(self.losses))
+            plt.style.use("seaborn")
+
+            plt.figure()
+            plt.plot(nums, self.losses, label="train loss")
+            plt.plot(nums, self.accuracy, label="train accuracy")
+            plt.title(f"Training Loss and Accuracy for Epoch {epoch}")
+            plt.xlabel("Epoch #")
+            plt.ylabel("Loss & Accuracy")
+            plt.legend()
+            file_path = file_path_relative(
+                f'{output_folder}/rnn_{self.name}_train_epoch_{epoch}.png')
+            plt.savefig(file_path)
 
 
 def create_text_vectorization_model(text_vectorization_filepath: str, dataset_all_tokens: tf.data.Dataset) -> tf.keras.models.Sequential:
@@ -116,7 +163,7 @@ def rnn_train(name: str, file_name: Optional[str] = None,
     logger.success('created all tokens text dataset')
 
     text_vectorization_filepath = file_path_relative(
-        f'{models_folder}/{name}/vectorization')
+        f'{models_folder}/{name}/{text_vectorization_folder}')
 
     text_vectorization_model = create_text_vectorization_model(
         text_vectorization_filepath, dataset_all_tokens)
@@ -153,7 +200,7 @@ def rnn_train(name: str, file_name: Optional[str] = None,
         return tfa.seq2seq.sequence_loss(logits, targets, tf.ones([batch_size, window_size]))
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
-    model.compile(optimizer=optimizer, loss=loss)
+    model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
     logger.success('model compiled')
 
     rnn_filepath = file_path_relative(
@@ -163,9 +210,12 @@ def rnn_train(name: str, file_name: Optional[str] = None,
         filepath=rnn_filepath,
         save_weights_only=True)
 
+    plot_callback = PlotTrain(name)
     history = model.fit(training_dataset, epochs=epochs,
-                        callbacks=[checkpoint_callback])
+                        callbacks=[checkpoint_callback, plot_callback])
     model.summary()
+    last_loss = plot_callback.losses[-1]
+    logger.info(f'model loss: {last_loss}')
     return text_vectorization_model
 
 
@@ -238,7 +288,8 @@ def rnn_predict_next(name: str,
             sum_probability_log += np.log(probabilities[predicted_index])
             count_all_predict += 1
 
-        logger.info(f"{i + 1}. {' '.join(sentence)} [[{' '.join(full_sentence[len(sentence):])}]]")
+        logger.info(
+            f"{i + 1}. {' '.join(sentence)} [[{' '.join(full_sentence[len(sentence):])}]]")
 
     if count_all_predict == 0:
         logger.info('no predictions, no perplexity')
