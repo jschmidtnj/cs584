@@ -26,7 +26,6 @@ vocab_size = 10000
 batch_size = 50
 
 # number of epochs to run
-# TODO - change to 10
 epochs = 10
 
 # window size in rnn

@@ -45,26 +45,32 @@ def main() -> None:
     # N-Grams
 
     # train
-    # n_grams_train(train_name, clean_data=train_data)
+    n_grams_train(train_name, clean_data=train_data)
     # test
-    # n_grams_predict_next(valid_name, clean_input_data=validation_data,
-    #                      smoothing=SmoothingType.basic)
-    # n_grams_predict_next(valid_name, clean_input_data=validation_data,
-    #                      smoothing=SmoothingType.good_turing)
-    # n_grams_predict_next(valid_name, clean_input_data=validation_data,
-    #                      smoothing=SmoothingType.kneser_ney)
+    n_grams_predict_next(valid_name, clean_input_data=validation_data,
+                         file_name=f'{train_name}.json',
+                         smoothing=SmoothingType.basic)
+    n_grams_predict_next(valid_name, clean_input_data=validation_data,
+                         file_name=f'{train_name}.json',
+                         smoothing=SmoothingType.good_turing)
+    n_grams_predict_next(valid_name, clean_input_data=validation_data,
+                         file_name=f'{train_name}.json',
+                         smoothing=SmoothingType.kneser_ney)
     # check kneser-ney with input because it has unseen data
-    # n_grams_predict_next(input_name, clean_input_data=input_data,
-    #                      smoothing=SmoothingType.kneser_ney,
-    #                      num_lines_predict=num_predict_input)
+    n_grams_train(input_name, clean_data=train_data,
+                  n_grams=2, fill_in_blank=True)
+    n_grams_predict_next(input_name, clean_input_data=input_data,
+                         file_name=f'{train_name}.json',
+                         smoothing=SmoothingType.kneser_ney,
+                         num_lines_predict=num_predict_input)
 
     # RNN:
     # train
-    # rnn_text_vectorization_model = rnn_train(train_name, clean_data=train_data)
+    rnn_text_vectorization_model = rnn_train(train_name, clean_data=train_data)
     # test
-    # rnn_predict_next(train_name, clean_input_data=validation_data)
-    # rnn_predict_next(train_name, clean_input_data=input_data,
-    #                  num_lines_predict=num_predict_input)
+    rnn_predict_next(train_name, clean_input_data=validation_data)
+    rnn_predict_next(train_name, clean_input_data=input_data,
+                     num_lines_predict=num_predict_input)
 
 
 if __name__ == '__main__':

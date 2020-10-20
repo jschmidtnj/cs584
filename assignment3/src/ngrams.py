@@ -19,6 +19,8 @@ import json
 from enum import Enum
 
 
+# this is actually trigram because we're looking at 2 words instead of 1
+# only for blank
 # default n gram size
 default_n_grams: int = 2
 
@@ -82,19 +84,26 @@ class NGramsModel:
     model class for encapsulating n-grams data
     """
 
-    def __init__(self):
-        # number of sequences that occur n-times
-        # i.e. N_1 is the number of n-grams that occur 1 time
-        self.count_map: Optional[Dict[int, int]] = None
+    def __init__(self, n_grams: int):
+        # n-grams number
+        self.n_grams = n_grams
 
-        # sum of all counts
-        self.total_count: Optional[int] = None
         # model of n-grams
         self.model: Dict[str, NGramsSequence] = {}
 
+        # uninitialized aggregates
+
+        # number of sequences that occur n-times
+        # i.e. N_1 is the number of n-grams that occur 1 time
+        self.count_map: Optional[Dict[int, int]] = None
+        # sum of all counts
+        self.total_count: Optional[int] = None
+        # map between first n - 1 grams, and the n-grams
+        self.n_1_gram_map: Optional[Dict[str, List[str]]] = None
+
     def create_count_map(self) -> Dict[int, int]:
         """
-        return map of number of sequences with
+        return map of number of sequences (n-grams) with
         each count
         """
         res: Dict[int, int] = {}
@@ -119,12 +128,41 @@ class NGramsModel:
         self.total_count = res
         return res
 
+    @staticmethod
+    def get_n_minus_1_grams(n_grams: str) -> str:
+        """
+        get n minus 1 grams
+        if n-gram is "start a paragraph",
+        output is "start a"
+        """
+        return n_grams.rsplit(' ')[0]
+
+    def create_n_1_gram_map(self) -> Dict[str, List[str]]:
+        """
+        create a map between the first n - 1 grams, and all of the n-grams
+        that have that same n - 1 grams to start
+        """
+        assert self.count_map is not None, 'count map is not initialized'
+        # assert self.n_grams > 1, 'n-grams must be greater than 1 in order to create n_1 gram map'
+
+        res: Dict[str, List[str]] = {}
+        for sequence in self.model:
+            sequence: str = cast(str, sequence)
+            n_minus_1_grams = self.get_n_minus_1_grams(sequence)
+            if n_minus_1_grams not in res:
+                res[n_minus_1_grams] = []
+            res[n_minus_1_grams].append(sequence)
+
+        self.n_1_gram_map = res
+        return res
+
     def generate_aggregates(self) -> None:
         """
         create all the necessary aggregates
         """
         self.create_count_map()
         self.create_total_count()
+        self.create_n_1_gram_map()
 
     @staticmethod
     def _basic_probability(count: int, sequence_total_count: int) -> float:
@@ -133,20 +171,10 @@ class NGramsModel:
         """
         return float(count) / sequence_total_count
 
-    def _good_turing_smoothing_probability(self, count: int, sequence: str,
-                                           sequence_total_count: int) -> float:
+    def _good_turing_new_c(self, count: int) -> float:
         """
-        good turing smoothing implementation
+        get good turing new count
         """
-
-        assert self.count_map is not None and \
-            self.total_count is not None, 'count map or total count not initialized'
-
-        if sequence == unseen_output:
-            # TODO - ask if this is correct - see slide 67 in lecture 5, green
-            # zero frequency, use N1
-            return self.count_map[1] / self.total_count
-
         next_count_index = count + 1
         next_count: Optional[float] = None
         if next_count_index not in self.count_map:
@@ -158,23 +186,71 @@ class NGramsModel:
 
         new_count: Optional[float] = None
         new_count = (count + 1) * next_count / self.count_map[count]
+        return new_count
+
+    def _good_turing_smoothing_probability(self, count: int, sequence: str,
+                                           sequence_total_count: int) -> float:
+        """
+        good turing smoothing implementation
+        """
+        assert self.count_map is not None and \
+            self.total_count is not None, 'count map or total count not initialized'
+
+        if sequence == unseen_output:
+            # see slide 67 in lecture 5, green
+            return self.count_map[1] / self.total_count
+
+        new_count = self._good_turing_new_c(count)
         probability = new_count / sequence_total_count
         return probability
 
-    def _get_probabilities_kneser_ney(self, _sequence_input: str) -> List[Tuple[str, float]]:
+    def _kneser_ney_probability(self, count: int, sequence: str,
+                                sequence_total_count: int) -> float:
         """
-        run kneser ney smoothing algorithm
+        kneser ney smoothing implementation
         """
-        # TODO - create this new algorithm
-        return [(unseen_output, 1.0)]
+        assert self.count_map is not None and \
+            self.n_1_gram_map is not None, 'count map or n minus 1 gram map not initialized'
+
+        count_previous_and_current: Optional[int] = None
+        if sequence == unseen_output or sequence not in self.n_1_gram_map:
+            # did not see given sequence, default count to 1
+            count_previous_and_current = 1
+        else:
+            count_word = len(self.n_1_gram_map[sequence])
+            count_previous_and_current = sequence_total_count + count_word
+        d = count - self._good_turing_new_c(count)
+        first_term = max([count_previous_and_current - d, 0]
+                         ) / float(sequence_total_count)
+
+        if sequence == unseen_output:
+            # if sequence is not seen, use frequency of unknown
+            # lmbda = d / count * freq(unknown)
+            sequence = unknown_token
+        different_final_word_types: int = 0
+        if sequence in self.model:
+            current_sequence_data: NGramsSequence = self.model[sequence]
+            different_final_word_types = len(current_sequence_data.next_count)
+        lmbda = d / float(sequence_total_count) * different_final_word_types
+
+        different_preceding_final_word_types: int = 0
+        if sequence in self.n_1_gram_map:
+            different_preceding_final_word_types = len(
+                self.n_1_gram_map[sequence])
+
+        num_n_grams = len(self.model)
+        if num_n_grams == 0:
+            return 0.
+
+        p_cont = float(different_preceding_final_word_types) / num_n_grams
+
+        return first_term + lmbda * p_cont
 
     def get_probabilities(self, sequence_input: str,
                           smoothing_type: SmoothingType) -> List[Tuple[str, float]]:
         """
         get all probabilities of next elem given sequence
         """
-        if smoothing_type == SmoothingType.kneser_ney:
-            return self._get_probabilities_kneser_ney(sequence_input)
 
         sequence_total_count: Optional[int] = None
         current_counts: Optional[List[Tuple[str, int]]] = None
@@ -199,6 +275,9 @@ class NGramsModel:
                     count, sequence_total_count)
             elif smoothing_type == SmoothingType.good_turing:
                 probability = self._good_turing_smoothing_probability(
+                    count, sequence, sequence_total_count)
+            elif smoothing_type == SmoothingType.kneser_ney:
+                probability = self._kneser_ney_probability(
                     count, sequence, sequence_total_count)
             else:
                 raise RuntimeError(
@@ -238,7 +317,8 @@ class NGramsModel:
         """
         return NGramsSequence object from dict
         """
-        complete_model = cls()
+        n_grams: int = data['n_grams']
+        complete_model = cls(n_grams)
 
         model: Dict[str, NGramsSequence] = {}
         for sequence, sequence_obj in data['model'].items():
@@ -246,13 +326,16 @@ class NGramsModel:
         complete_model.model = model
 
         complete_model.count_map = cls.dict_str_to_int(data['count_map'])
+        complete_model.n_1_gram_map = data['n_1_gram_map']
+        complete_model.total_count = data['total_count']
 
         return complete_model
 
 
 def n_grams_train(name: str, file_name: Optional[str] = None,
                   clean_data: Optional[pd.DataFrame] = None,
-                  n_grams: int = default_n_grams) -> NGramsModel:
+                  n_grams: int = default_n_grams,
+                  fill_in_blank: bool = False) -> NGramsModel:
     """
     n-grams training
     get a dictionary of grams to a dictionary of subsequent words and their counts
@@ -273,7 +356,10 @@ def n_grams_train(name: str, file_name: Optional[str] = None,
             f'n-grams of {n_grams} is greater than average sentence ' +
             f'length of {average_sentence_len} in training data')
 
-    n_grams_res = NGramsModel()
+    if fill_in_blank and n_grams > 1:
+        n_grams -= 1
+
+    n_grams_res = NGramsModel(n_grams)
 
     for sentence in tokens:
         for i in range(len(sentence) - n_grams):
@@ -362,7 +448,8 @@ def n_grams_predict_next(name: str,
                 sum_probability_log += np.log(prob)
                 count_all_predict += 1
 
-        logger.info(f"{i + 1}. {' '.join(sentence)} [[{' '.join(full_sentence[len(sentence):])}]]")
+        logger.info(
+            f"{i + 1}. {' '.join(sentence)} [[{' '.join(full_sentence[len(sentence):])}]]")
 
     if count_all_predict == 0:
         logger.info('no predictions, no perplexity')
