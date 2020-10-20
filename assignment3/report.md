@@ -103,7 +103,7 @@ There are fewer unknown outputs in the predictions (compared to the n-gram model
 
 Proof that perplexity is $\exp{\frac{total loss}{number of predictions}}$:
 
-![Training Curve](./proof/perplexity.jpg)
+![Perplexity Proof](./proof/perplexity.jpg)
 
 \newpage
 
