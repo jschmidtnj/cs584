@@ -22,13 +22,14 @@ def initialize() -> None:
     tf.random.set_seed(random_state)
     random.seed(random_state)
     np.random.seed(random_state)
+    # show if there is a GPU. this will allow for faster training
     logger.info(
         f"Num GPUs Available: {len(tf.config.experimental.list_physical_devices('GPU'))}")
 
 
 def main() -> None:
     """
-    main entry point
+    main entry point for program
     """
     initialize()
 
@@ -66,7 +67,7 @@ def main() -> None:
 
     # RNN:
     # train
-    rnn_text_vectorization_model = rnn_train(train_name, clean_data=train_data)
+    rnn_train(train_name, clean_data=train_data)
     # test
     rnn_predict_next(train_name, clean_input_data=validation_data)
     rnn_predict_next(train_name, clean_input_data=input_data,

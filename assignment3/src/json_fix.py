@@ -4,7 +4,8 @@ Module that monkey-patches json module when it's imported so
 JSONEncoder.default() automatically checks for a special "to_json()"
 method and uses it to encode the object if found.
 
-see https://stackoverflow.com/a/18561055/8623391
+note - this is from https://stackoverflow.com/a/18561055/8623391
+I've used this in a bunch of other projects in the past
 """
 from json import JSONEncoder
 

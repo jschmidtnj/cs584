@@ -7,7 +7,7 @@ from os.path import basename, splitext, join
 from typing import List, Optional
 from utils import get_glob
 from variables import raw_data_folder, clean_data_folder, sentences_key, \
-    random_state, unknown_token
+    unknown_token
 from loguru import logger
 import pandas as pd
 import re
@@ -53,13 +53,17 @@ def clean_tokenize(file_name: Optional[str] = None) -> List[pd.DataFrame]:
                 line_number += 1
                 sentence: List[float] = []
                 line_lower_trim = line.lower().strip()
+                # remove unwanted characters
                 line_sanitized = re.sub(
                     unwanted_chars_regex, '', line_lower_trim)
+                # split line into words
                 for word in line_sanitized.split(' '):
                     if len(sentence) > 0 and (word.startswith("'")
                                               or word in additional_contractions):
+                        # add contraction to previous word
                         sentence[-1] += word
                     else:
+                        # add word / unknown token to sentence
                         if word in unknown_token_list:
                             word = unknown_token
                         if word not in unwanted_words:
@@ -71,7 +75,7 @@ def clean_tokenize(file_name: Optional[str] = None) -> List[pd.DataFrame]:
         })
         data.to_csv(join(clean_data_folder, f'{file_name}.csv'))
         logger.info(
-            f'\nsample of clean data for {file_name}: \n{data.sample(random_state=random_state, n=5)}')
+            f'\nsample of clean data for {file_name}: \n{data.sample(n=5)}')
         res.append(data)
 
     return res

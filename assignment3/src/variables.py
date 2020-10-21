@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-utils functions
+global user-defined variables
 """
 
 data_folder: str = 'data'

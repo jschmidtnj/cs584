@@ -2,7 +2,7 @@
 
 *I pledge my honor that I have abided by the Stevens Honor System.* - Joshua Schmidt
 
-Name: Joshua Schmidt, Date: 10/20/2020
+Name: Joshua Schmidt, Date: 10/21/2020
 
 ## Introduction
 
@@ -10,7 +10,7 @@ In this assignment, there were two main techniques that were used for language m
 
 ## Code structure
 
-The source code for this project can be found in the `src` folder. Dependencies are managed with anaconda and can be installed through initializing the environment in the `environment.yml` file in the base directory. The entry point to the program is `src/main.py`. This script first cleans the datasets (which need to be placed in `data/raw_data`), and then runs the training and validation for all of the models. Working files are stored in the `data` folder, with clean csv files (of pandas dataframes) in the `data/clean_data` folder, and trained models in the `data/models` folder. The models are saved to disk based off of the training data file name. Outputs are logged using the `loguru` package, and the complete logs are saved in `output/logs.txt`. The `outputs` folder also contains graphs of loss and accuracy for the RNN training.
+The source code for this project can be found in the `src` folder. Dependencies are managed with anaconda and can be installed through initializing the environment defined in the `environment.yml` file in the base directory. The entry point to the program is `src/main.py`. This script first cleans the datasets (which need to be placed in `data/raw_data`), and then runs the training and validation for all of the models. Working files are stored in the `data` folder, with clean csv files (of pandas dataframes) in the `data/clean_data` folder, and trained models in the `data/models` folder. The models are saved to disk based off of the training data file name. Outputs are logged using the `loguru` package, and the complete logs are saved in `output/logs.txt`. The `outputs` folder also contains graphs of loss and accuracy for the RNN training.
 
 ## N-gram Results
 
@@ -75,7 +75,7 @@ The first thirty lines predicted by the Kneser Ney N-grams implementation over t
 - `2020-10-20 14:08:50.927 | INFO     | ngrams:n_grams_predict_next:451 - 29. most of the stock selling pressure came from wall street [[the]]`
 - `2020-10-20 14:08:50.929 | INFO     | ngrams:n_grams_predict_next:451 - 30. traders said most of their major institutional investors on the [[[UNK]]]`
 
-Again, the predictions are in double brackets. Most of the predictions make grammatical sense, but they are not always the best prediction for the given sentence. The problem is these predictions are only based off the last words of the sentence, as opposed to the entire sentence with its context.
+Again, the predictions are in double brackets. Most of the predictions make grammatical sense, but they are not always the best prediction for the given sentence. The problem is these predictions are only based off of the last words of the sentence, as opposed to the entire sentence with its context.
 
 ## RNN Results
 
@@ -101,15 +101,15 @@ There are fewer unknown outputs in the predictions (compared to the n-gram model
 
 ## Proof
 
-Proof that perplexity is $\exp{\frac{total loss}{number of predictions}}$:
+The proof that perplexity is $\exp{\frac{total loss}{number of predictions}}$ is written below. To test this equation with the output, $perplexity = \frac{2.5858}{30}$, $0.0841 \approxeq 0.0862$
 
-![Perplexity Proof](./proof/perplexity.jpg)
+![Derivation of Perplexity](./proof/perplexity.jpg)
 
 \newpage
 
 ### input.txt
 
-Below are the next word predictions for the `input.txt` dataset. Again, the outputs can be found in the log file.
+Below are the next word predictions for the `input.txt` dataset. Again, these outputs can be found in the log file.
 
 - `2020-10-20 14:22:18.620 | INFO     | rnn:rnn_predict_next:292 - 1. but while the new york stock exchange didn't fall [[the]]`
 - `2020-10-20 14:22:18.872 | INFO     | rnn:rnn_predict_next:292 - 2. some circuit breakers installed after the october n crash failed [[to]]`
@@ -142,4 +142,8 @@ Below are the next word predictions for the `input.txt` dataset. Again, the outp
 - `2020-10-20 14:22:20.325 | INFO     | rnn:rnn_predict_next:292 - 29. most of the stock selling pressure came from wall street [[william]]`
 - `2020-10-20 14:22:20.378 | INFO     | rnn:rnn_predict_next:292 - 30. traders said most of their major institutional investors on the [[cboe]]`
 
-These predictions make more sense in the context of the given sentence. Sentences that have to do with trading and finance have predictions that are also in the realm of trading. One that sticks out is number 21, where traders are disappointed in the government's actions (this is fairly common).
+These predictions make more sense in the context of the given sentence (compared to the n-gram models). Sentences that have to do with trading and finance have predictions that are within the realm of trading. One that sticks out is line 21, where traders are disappointed in the government's actions (this is fairly common).
+
+## Conclusion
+
+After analyzing the outputs, it seems as though the models were implemented correctly, both for N-gram and RNN. However, the RNN model performed better, both in perplexity and in a qualitative analysis. The RNN model took a lot longer to train (is more computationally expensive) and takes up more space on disk than the n-grams model. So there are always trade-offs. In the future, given the relative low cost of compute power and the quality of the output, I will most likely gravitate towards using an RNN model over N-grams for text prediction / generation, despite the higher complexity of the implementation.

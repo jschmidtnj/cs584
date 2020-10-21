@@ -4,8 +4,7 @@
 - https://github.com/smilli/kneser-ney
 - https://stackabuse.com/python-for-nlp-developing-an-automatic-text-filler-using-n-grams/
 - more slides: https://www.cs.cornell.edu/courses/cs4740/2014sp/lectures/smoothing+backoff.pdf
-- `./src/main.py 2>&1 | grep "<unseen>" | wc -l`
-- `./src/main.py 2>&1 | grep -v "<unseen>"`
+- `./src/main.py 2>&1 | grep "[UNK]" | wc -l`
 - `./src/main.py > output/logs.txt 2>&1`
 - kneser-ney: https://medium.com/@dennyc/a-simple-numerical-example-for-kneser-ney-smoothing-nlp-4600addf38b8
 - following this for perplexity:

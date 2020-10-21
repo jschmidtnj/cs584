@@ -19,13 +19,11 @@ import json
 from enum import Enum
 
 
-# this is actually trigram because we're looking at 2 words instead of 1
-# only for blank
 # default n gram size
 default_n_grams: int = 2
 
 # output if the input sequence is not found in the training data
-unseen_output: str = '<unseen>'
+unseen_output: str = ''
 
 
 class SmoothingType(Enum):
@@ -40,6 +38,17 @@ class SmoothingType(Enum):
 class NGramsSequence:
     """
     n-grams sequence object
+    a sequence contains the first n - 1 words,
+    and the next_count dictionary is a count of each of
+    the next words.
+
+    ex. n-grams: the stock is, the stock should
+    sequence: the stock
+    next_count dict: {
+        is: 1, should: 1
+    }
+
+    total_count is the sum of all values in the next_count dict
     """
 
     def __init__(self, sequence: str):
@@ -82,6 +91,10 @@ class NGramsSequence:
 class NGramsModel:
     """
     model class for encapsulating n-grams data
+
+    contains a dictionary of sequences to their corresponding
+    objects (self.model). contains count of counts, total number
+    of n-grams, and an inverse map of self.model (n_1_gram_map).
     """
 
     def __init__(self, n_grams: int):
@@ -220,6 +233,7 @@ class NGramsModel:
             count_word = len(self.n_1_gram_map[sequence])
             count_previous_and_current = sequence_total_count + count_word
         d = count - self._good_turing_new_c(count)
+        # first term is the term on the left of the equation
         first_term = max([count_previous_and_current - d, 0]
                          ) / float(sequence_total_count)
 
@@ -231,6 +245,7 @@ class NGramsModel:
         if sequence in self.model:
             current_sequence_data: NGramsSequence = self.model[sequence]
             different_final_word_types = len(current_sequence_data.next_count)
+        # lambda is part of the second term
         lmbda = d / float(sequence_total_count) * different_final_word_types
 
         different_preceding_final_word_types: int = 0
@@ -242,8 +257,10 @@ class NGramsModel:
         if num_n_grams == 0:
             return 0.
 
+        # p_cont is the second part of the second term
         p_cont = float(different_preceding_final_word_types) / num_n_grams
 
+        # return probability of the current sequence
         return first_term + lmbda * p_cont
 
     def get_probabilities(self, sequence_input: str,
@@ -259,6 +276,7 @@ class NGramsModel:
             sequence_total_count = 1
             current_counts = [(unseen_output, sequence_total_count)]
         else:
+            # get n_gram data from model
             current_sequence_data: NGramsSequence = self.model[sequence_input]
             if self.count_map is None:
                 self.generate_aggregates()
@@ -266,10 +284,12 @@ class NGramsModel:
             current_counts = list(
                 current_sequence_data.next_count.items()).copy()
 
+        # iterate over all n_gram options for the given input
         for i, elem in enumerate(current_counts):
             sequence, count = elem
             probability: Optional[float] = None
 
+            # switch statement for smoothing type
             if smoothing_type == SmoothingType.basic:
                 probability = self._basic_probability(
                     count, sequence_total_count)
@@ -285,6 +305,7 @@ class NGramsModel:
 
             current_counts[i] = sequence, probability
 
+        # return sorted sequences based on probability (high to low)
         sorted_counts = sorted(current_counts,
                                key=lambda elem: elem[1], reverse=True)
 
@@ -343,6 +364,7 @@ def n_grams_train(name: str, file_name: Optional[str] = None,
     if file_name is None and clean_data is None:
         raise ValueError('no file name or tokens provided')
 
+    # get training data
     if clean_data is None:
         file_path = file_path_relative(f'{clean_data_folder}/{file_name}')
         logger.info(f'reading data from {file_path}')
@@ -359,8 +381,10 @@ def n_grams_train(name: str, file_name: Optional[str] = None,
     if fill_in_blank and n_grams > 1:
         n_grams -= 1
 
+    # create n-gram model
     n_grams_res = NGramsModel(n_grams)
 
+    # train model with sliding window
     for sentence in tokens:
         for i in range(len(sentence) - n_grams):
             sequence = ' '.join(sentence[i: i + n_grams])
@@ -370,8 +394,10 @@ def n_grams_train(name: str, file_name: Optional[str] = None,
             next_word = sentence[i + n_grams]
             n_grams_res.model[sequence].add_grams(next_word)
 
+    # create aggregate objects
     n_grams_res.generate_aggregates()
 
+    # save to disk
     json_file_path = file_path_relative(f'{models_folder}/{name}.json')
     with open(json_file_path, 'w', encoding='utf-8') as file:
         json.dump(n_grams_res, file, ensure_ascii=False,
@@ -401,12 +427,14 @@ def n_grams_predict_next(name: str,
     if clean_input_file is None and clean_input_data is None:
         raise ValueError('no input file name or data provided')
 
+    # create n-gram model if not provided
     if model is None:
         json_file_path = file_path_relative(f'{models_folder}/{file_name}')
         logger.info(f'reading data from {json_file_path}')
         with open(json_file_path, 'r') as file:
             model = NGramsModel.from_json(json.load(file))
 
+    # get testing data
     if clean_input_data is None:
         file_path = file_path_relative(
             f'{clean_data_folder}/{clean_input_file}')
@@ -425,6 +453,7 @@ def n_grams_predict_next(name: str,
     sum_probability_log: float = 0.
     count_all_predict: int = 0
 
+    # iterate over testing data
     for i, sentence in enumerate(predict_sentences):
         full_sentence = sentence.copy()
         for _ in range(num_predict):

@@ -79,9 +79,11 @@ class PlotTrain(tf.keras.callbacks.Callback):
             plt.savefig(file_path)
 
 
-def create_text_vectorization_model(text_vectorization_filepath: str, dataset_all_tokens: tf.data.Dataset) -> tf.keras.models.Sequential:
+def create_text_vectorization_model(text_vectorization_filepath: str,
+                                    dataset_all_tokens: tf.data.Dataset) -> tf.keras.models.Sequential:
     """
     create text vectorization model
+    this vectorizer converts an array of strings to an array of integers
     """
     vectorize_layer = TextVectorization(
         max_tokens=vocab_size,
@@ -97,7 +99,8 @@ def create_text_vectorization_model(text_vectorization_filepath: str, dataset_al
         tf.keras.Input(shape=(1,), dtype=tf.string),
         vectorize_layer
     ])
-    logger.info(text_vectorization_model.predict(["test it help"]))
+    # simple text vectorization test
+    logger.info(text_vectorization_model.predict(["this is a test"]))
     text_vectorization_model.save(text_vectorization_filepath)
     return text_vectorization_model
 
@@ -105,11 +108,14 @@ def create_text_vectorization_model(text_vectorization_filepath: str, dataset_al
 def build_model(current_batch_size=batch_size) -> tf.keras.models.Sequential:
     """
     build main rnn model
+
+    batch_size is a parameter because it changes in testing
     """
     # rnn params
     embedding_dim = 256
     rnn_units = 1024
 
+    # this uses GRU
     model = tf.keras.models.Sequential([
         tf.keras.layers.Embedding(vocab_size, embedding_dim,
                                   batch_input_shape=[current_batch_size, None]),
@@ -125,7 +131,7 @@ def build_model(current_batch_size=batch_size) -> tf.keras.models.Sequential:
 
 def flatten_input(data: List[List[Any]]) -> List[Any]:
     """
-    flatten the given input
+    flatten the given input (to 1xn)
     """
     return np.hstack(data).tolist()
 
@@ -151,6 +157,7 @@ def rnn_train(name: str, file_name: Optional[str] = None,
     if file_name is None and clean_data is None:
         raise ValueError('no file name or tokens provided')
 
+    # get training data
     if clean_data is None:
         file_path = file_path_relative(f'{clean_data_folder}/{file_name}')
         logger.info(f'reading data from {file_path}')
@@ -162,6 +169,7 @@ def rnn_train(name: str, file_name: Optional[str] = None,
     dataset_all_tokens = tf.data.Dataset.from_tensor_slices(flattened_tokens)
     logger.success('created all tokens text dataset')
 
+    # get text vectorization model
     text_vectorization_filepath = file_path_relative(
         f'{models_folder}/{name}/{text_vectorization_folder}')
 
@@ -170,8 +178,10 @@ def rnn_train(name: str, file_name: Optional[str] = None,
     vectorized_tokens: List[int] = flatten_input(text_vectorization_model.predict(
         flattened_tokens, batch_size=batch_size))
 
+    # create vectorized dataset
     vectorized_tokens_dataset = tf.data.Dataset.from_tensor_slices(
         vectorized_tokens)
+    # create sliding window
     batched_vectorized_tokens = vectorized_tokens_dataset.batch(
         window_size + 1, drop_remainder=True)
 
@@ -179,26 +189,31 @@ def rnn_train(name: str, file_name: Optional[str] = None,
         input_text = batch[:-1]
         target_text = batch[1:]
         return input_text, target_text
+    # create train and test
     training_dataset = batched_vectorized_tokens.map(split_train_test)
 
+    # print some samples
     logger.success('training data sample:')
     for input_example, target_example in training_dataset.take(20):
         logger.info(f"\ninput: {input_example}\ntarget: {target_example}")
 
     # buffer size is used to shuffle the dataset
     buffer_size = 10000
+    # create batches
     training_dataset = training_dataset.shuffle(
         buffer_size).batch(batch_size, drop_remainder=True)
     logger.info(f'training dataset shape: {training_dataset}')
 
     model = build_model()
 
+    # use sequence loss in training
     def loss(targets, logits):
         """
         return loss for given iteration
         """
         return tfa.seq2seq.sequence_loss(logits, targets, tf.ones([batch_size, window_size]))
 
+    # use adam optimizer
     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
     model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
     logger.success('model compiled')
@@ -206,10 +221,12 @@ def rnn_train(name: str, file_name: Optional[str] = None,
     rnn_filepath = file_path_relative(
         f'{rnn_folder}/{name}/{rnn_file_name}')
 
+    # save checkpoints to disk
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=rnn_filepath,
         save_weights_only=True)
 
+    # create visualizations
     plot_callback = PlotTrain(name)
     history = model.fit(training_dataset, epochs=epochs,
                         callbacks=[checkpoint_callback, plot_callback])
@@ -234,6 +251,7 @@ def rnn_predict_next(name: str,
     if clean_input_file is None and clean_input_data is None:
         raise ValueError('no input file name or data provided')
 
+    # create model from disk
     model = build_model(1)
     rnn_filepath = file_path_relative(
         f'{rnn_folder}/{name}/{rnn_file_name}')
@@ -241,12 +259,14 @@ def rnn_predict_next(name: str,
     model.build(tf.TensorShape([1, None]))
     model.summary()
 
+    # get text vectorizer
     if text_vectorization_model is None:
         text_vectorization_filepath = file_path_relative(
             f'{models_folder}/{name}/vectorization')
         text_vectorization_model = tf.keras.models.load_model(
             text_vectorization_filepath)
 
+    # get testing data
     if clean_input_data is None:
         file_path = file_path_relative(
             f'{clean_data_folder}/{clean_input_file}')
@@ -258,6 +278,7 @@ def rnn_predict_next(name: str,
     if num_lines_predict is not None:
         predict_sentences = predict_sentences[:num_lines_predict]
 
+    # vectorize testing data
     vectorize_layer: TextVectorization = text_vectorization_model.layers[0]
     vocabulary = vectorize_layer.get_vocabulary()
     # logger.info(f'vocabulary: {vocabulary}')
@@ -269,6 +290,8 @@ def rnn_predict_next(name: str,
 
     sum_probability_log: float = 0.
     count_all_predict: int = 0
+
+    # iterate over all input sentences
     for i, sentence in enumerate(predict_sentences):
         full_sentence = sentence.copy()
         for _ in range(num_predict):
