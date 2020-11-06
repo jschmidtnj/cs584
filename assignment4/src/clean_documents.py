@@ -3,6 +3,7 @@
 data clean (clean.py)
 """
 
+import re
 from os.path import basename, splitext, exists
 from typing import Optional, List
 from utils import get_glob, file_path_relative
@@ -28,6 +29,15 @@ min_line_len: int = 6  # line discarded if less than this number of characters
 
 default_file_name: str = f'{clean_data_folder}/documents.csv'
 classes_file_name: str = f'{clean_data_folder}/doc_classes.txt'
+
+whitespace_regex = re.compile(r"\s+")
+
+def normalize_sentence(sentence: str) -> str:
+    """
+    remove punctuation, return list of words
+    """
+    sentence = whitespace_regex.sub(' ', sentence).strip()
+    return sentence
 
 
 def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.DataFrame, List[BookType]]:
@@ -105,8 +115,9 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.Da
         class_name = class_map[book_key]
         logger.info(
             f'number of paragraphs in class "{class_name}": {len(paragraphs)}')
+        paragraphs = [[normalize_sentence(sentence) for sentence in paragraph] for paragraph in paragraphs]
         data = pd.concat([data, pd.DataFrame({
-            paragraph_key: [' '.join(paragraph) for paragraph in paragraphs],
+            paragraph_key: paragraphs,
             label_key: [class_name] * len(paragraphs),
             class_key: class_count
         })], ignore_index=True)

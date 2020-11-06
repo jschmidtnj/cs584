@@ -5,11 +5,13 @@ rnn (rnn.py)
 
 from __future__ import annotations
 
+import string
+from os.path import exists
 from sys import argv
 from typing import List, Optional, Any, Dict
 from utils import file_path_relative
 from variables import paragraph_key, clean_data_folder, models_folder, \
-    rnn_folder, text_vectorization_folder, rnn_file_name
+    rnn_folder, text_vectorization_folder, rnn_file_name, class_key
 from loguru import logger
 from ast import literal_eval
 import pandas as pd
@@ -24,13 +26,13 @@ from tensorflow.keras.layers.experimental.preprocessing import TextVectorization
 vocab_size = 10000
 
 # read dataset in batches of
-batch_size = 50
+batch_size = 1
 
 # number of epochs to run
 epochs = 10
 
 # window size in rnn
-window_size: int = 20
+window_size: int = 1
 
 
 
@@ -40,6 +42,10 @@ def create_text_vectorization_model(text_vectorization_filepath: str,
     create text vectorization model
     this vectorizer converts an array of strings to an array of integers
     """
+    if exists(text_vectorization_filepath):
+        logger.info('found text vectorization model')
+        return tf.keras.models.load_model(text_vectorization_filepath, compile=False)
+
     vectorize_layer = TextVectorization(
         max_tokens=vocab_size,
         output_mode='int'
@@ -84,6 +90,14 @@ def build_rnn_model(current_batch_size=batch_size) -> tf.keras.models.Sequential
     return model
 
 
+def get_tokens(sentence: str) -> List[str]:
+    """
+    remove punctuation, return list of words
+    """
+    sentence = sentence.translate(str.maketrans('', '', string.punctuation))
+    return sentence.split(' ')
+
+
 def flatten_input(data: List[List[Any]]) -> List[Any]:
     """
     flatten the given input (to 1xn)
@@ -95,7 +109,7 @@ def pad_zeros(data: List[int], num_elem: int) -> List[int]:
     """
     pads array so output is num_elem is length
     """
-    if len(data) >= num_elem:
+    if len(data) > num_elem:
         return data[:-num_elem]
     data.extend([0] * (num_elem - len(data)))
     return data
@@ -119,7 +133,8 @@ def rnn_train(name: str, file_name: Optional[str] = None,
         clean_data = pd.read_csv(file_path, converters={
             paragraph_key: literal_eval})
 
-    tokens: List[List[str]] = clean_data[paragraph_key]
+    all_sentences: List[str] = flatten_input(clean_data[paragraph_key][:2])
+    tokens = [get_tokens(sentence) for sentence in all_sentences]
     flattened_tokens: List[str] = flatten_input(tokens)
     dataset_all_tokens = tf.data.Dataset.from_tensor_slices(flattened_tokens)
     logger.success('created all tokens text dataset')
@@ -129,26 +144,26 @@ def rnn_train(name: str, file_name: Optional[str] = None,
 
     text_vectorization_model = create_text_vectorization_model(
         text_vectorization_filepath, dataset_all_tokens)
-    vectorized_tokens: List[int] = flatten_input(text_vectorization_model.predict(
-        flattened_tokens, batch_size=batch_size))
 
-    # create vectorized dataset
-    vectorized_tokens_dataset = tf.data.Dataset.from_tensor_slices(
-        vectorized_tokens)
+    logger.info('get vectorized tokens')
+    vectorized_tokens: List[List[int]] = [flatten_input(text_vectorization_model.predict(
+        get_tokens(sentence), batch_size=batch_size)) for sentence in all_sentences]
+
+    labels: List[int] = clean_data[class_key][:2]
+
+    # create dataset
+    length_vectorized_list = len(max(vectorized_tokens, key=len))
+    vectorized_tokens_rectangular = [pad_zeros(sentence, length_vectorized_list) for sentence in vectorized_tokens]
+    complete_dataset = tf.data.Dataset.from_tensor_slices((vectorized_tokens_rectangular, labels))
+    logger.info('created complete dataset')
     # create sliding window
-    batched_vectorized_tokens = vectorized_tokens_dataset.batch(
+    training_dataset = complete_dataset.batch(
         window_size + 1, drop_remainder=True)
-
-    def split_train_test(batch: List[int]):
-        input_text = batch[:-1]
-        target_text = batch[1:]
-        return input_text, target_text
-    # create train and test
-    training_dataset = batched_vectorized_tokens.map(split_train_test)
+    logger.info('batched dataset')
 
     # print some samples
     logger.success('training data sample:')
-    for input_example, target_example in training_dataset.take(20):
+    for input_example, target_example in training_dataset.take(1):
         logger.info(f"\ninput: {input_example}\ntarget: {target_example}")
 
     # buffer size is used to shuffle the dataset
