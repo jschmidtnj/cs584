@@ -10,7 +10,8 @@ import numpy as np
 import tensorflow as tf
 import random
 from loguru import logger
-from clean_documents import clean
+from clean_documents import clean as clean_documents
+from clean_reviews import clean as clean_reviews
 from classification_2 import cnn_train
 
 
@@ -33,12 +34,17 @@ def main() -> None:
     initialize()
 
     # Clean Data
-    classification_data, _classes_list = clean()
-    logger.info(
-        f'\nsample of output data:\n{classification_data.sample(n=5)}')
+    # classification_data, _classes_list = clean_documents()
+    # logger.info(
+    #     f'\nsample of output data:\n{classification_data.sample(n=5)}')
 
-    # Train Models
-    cnn_train('documents_cnn', classification_data)
+    # # Train Models
+    # cnn_train('documents_cnn', classification_data)
+
+    # Clean Data
+    sentiment_data = clean_reviews()
+    logger.info(
+        f'\nsample of output data:\n{sentiment_data.sample(n=5)}')
 
 
 if __name__ == '__main__':

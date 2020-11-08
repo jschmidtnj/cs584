@@ -15,6 +15,10 @@ class BookType(Enum):
     doyle = "doyle"
     austen = "austen"
 
+    @classmethod
+    def get_values(cls):
+        return [elem.value for elem in cls]
+
 
 class StartEnd:
     """

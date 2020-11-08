@@ -45,7 +45,6 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.Da
     """
     data cleaning
     """
-    data: pd.DataFrame = pd.DataFrame()
     class_count: int = 0
     label_list: List[BookType] = []
 
@@ -67,6 +66,8 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.Da
             label_list_enum = [BookType(elem) for elem in label_list]
         return data, label_list_enum
 
+    data: pd.DataFrame = pd.DataFrame()
+
     # preprocess data and construct examples
     found_files: bool = False
     for file_path in get_glob(f'{part_1_data_folder}/*.txt'):
@@ -83,38 +84,38 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.Da
             while True:
                 line = current_file.readline()
                 line_number += 1
-                line_lower_trim: Optional[str] = None
+                line_trim: Optional[str] = None
                 if line:
-                    line_lower_trim = line.lower().strip()
+                    line_trim = line.strip()
                 if not book_started and \
-                    ((line_lower_trim is not None and line_lower_trim.startswith(start_book))
+                    ((line_trim is not None and line_trim.startswith(start_book))
                      or (book_key is not None and line_number >= start_end_map[book_key].start)):
                     book_started = True
-                if line_lower_trim is None or line_lower_trim.startswith(end_book) \
-                        or line_lower_trim == the_end or \
+                if line_trim is None or line_trim.startswith(end_book) \
+                        or line_trim == the_end or \
                         (book_key is not None and line_number >= start_end_map[book_key].end):
                     # done with reading the file
                     break
                 if not book_started:
-                    if title is None and line_lower_trim.startswith(title_split):
-                        title = line_lower_trim.split(title_split)[1]
+                    if title is None and line_trim.startswith(title_split):
+                        title = line_trim.split(title_split)[1]
                         logger.info(f'title: {title}')
-                    if book_key is None and line_lower_trim.startswith(author_split):
-                        author: str = line_lower_trim.split(author_split)[1]
+                    if book_key is None and line_trim.startswith(author_split):
+                        author: str = line_trim.split(author_split)[1]
                         logger.info(f'author: {author}')
                         book_key = BookType(author.split(' ')[-1])
                 else:
-                    if len(line_lower_trim) < min_line_len or \
+                    if len(line_trim) < min_line_len or \
                             line.startswith(chapter) or line.startswith(chapter):
                         num_newline_count += 1
                     else:
-                        multi_line_quotes = line_lower_trim.startswith(multi_quote_identifier) \
+                        multi_line_quotes = line_trim.startswith(multi_quote_identifier) \
                             and paragraphs[-1][0].startswith(multi_quote_identifier)
                         if len(paragraphs) == 0 or \
                                 (num_newline_count > 0 and not multi_line_quotes):
                             paragraphs.append([])
                         num_newline_count = 0
-                        paragraphs[-1].append(line_lower_trim)
+                        paragraphs[-1].append(line_trim)
         if not found_files:
             raise RuntimeError('no files found')
         if book_key is None:
