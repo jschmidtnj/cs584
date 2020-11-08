@@ -4,6 +4,7 @@ data clean (clean.py)
 """
 
 import re
+from ast import literal_eval
 from os.path import basename, splitext, exists
 from typing import Optional, List
 from utils import get_glob, file_path_relative
@@ -57,7 +58,9 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.Da
     classes_path = file_path_relative(classes_file_name)
 
     if get_from_disk and exists(clean_data_path) and exists(classes_path):
-        data = pd.read_csv(clean_data_basename)
+        logger.info(f'reading data from {clean_data_path}')
+        data = pd.read_csv(clean_data_path, converters={
+            paragraph_key: literal_eval})
         label_list_enum: Optional[List[BookType]] = None
         with open(classes_path) as classes_file:
             label_list = yaml.load(classes_file, Loader=yaml.FullLoader)
@@ -65,7 +68,9 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.Da
         return data, label_list_enum
 
     # preprocess data and construct examples
+    found_files: bool = False
     for file_path in get_glob(f'{part_1_data_folder}/*.txt'):
+        found_files = True
         file_name: str = basename(splitext(file_path)[0])
         logger.info(f'processing {file_name}')
         title: Optional[str] = None
@@ -110,6 +115,8 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> Tuple[pd.Da
                             paragraphs.append([])
                         num_newline_count = 0
                         paragraphs[-1].append(line_lower_trim)
+        if not found_files:
+            raise RuntimeError('no files found')
         if book_key is None:
             raise RuntimeError('no book key found')
         class_name = class_map[book_key]

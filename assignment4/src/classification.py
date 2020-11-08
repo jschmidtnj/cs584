@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-rnn (rnn.py)
+classification (classification.py)
 """
 
 from __future__ import annotations
 
 import string
+import yaml
 from os.path import exists
 from sys import argv
 from typing import List, Optional, Any, Dict
 from utils import file_path_relative
 from variables import paragraph_key, clean_data_folder, models_folder, \
-    rnn_folder, text_vectorization_folder, rnn_file_name, class_key
+    cnn_folder, text_vectorization_folder, cnn_file_name, class_key
 from loguru import logger
-from ast import literal_eval
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,13 +26,13 @@ from tensorflow.keras.layers.experimental.preprocessing import TextVectorization
 vocab_size = 10000
 
 # read dataset in batches of
-batch_size = 1
+batch_size = 10
 
 # number of epochs to run
 epochs = 10
 
-# window size in rnn
-window_size: int = 1
+# window size in cnn
+window_size: int = 10
 
 
 
@@ -66,36 +66,30 @@ def create_text_vectorization_model(text_vectorization_filepath: str,
     return text_vectorization_model
 
 
-def build_rnn_model(current_batch_size=batch_size) -> tf.keras.models.Sequential:
+def build_cnn_model(size_data: int, current_batch_size=batch_size) -> tf.keras.models.Sequential:
     """
-    build main rnn model
+    build main cnn model
 
     batch_size is a parameter because it changes in testing
     """
-    # rnn params
-    embedding_dim = 256
-    rnn_units = 1024
 
-    # this uses GRU
+    # TODO - build the model correctly
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Embedding(vocab_size, embedding_dim,
-                                  batch_input_shape=[current_batch_size, None]),
-        tf.keras.layers.GRU(rnn_units,
-                            return_sequences=True,
-                            stateful=True,
-                            recurrent_initializer='glorot_uniform'),
-        tf.keras.layers.Dense(vocab_size + 1)
+        tf.keras.layers.Embedding(vocab_size, 64,
+                                  batch_input_shape=[current_batch_size, size_data]),
+        tf.keras.layers.LSTM(64, input_shape=(current_batch_size, size_data, 64), return_sequences=True),
+        tf.keras.layers.Dense(2),
     ])
     logger.success('created tf model')
     return model
 
 
-def get_tokens(sentence: str) -> List[str]:
+def get_tokens(text: str) -> List[str]:
     """
     remove punctuation, return list of words
     """
-    sentence = sentence.translate(str.maketrans('', '', string.punctuation))
-    return sentence.split(' ')
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    return text.split(' ')
 
 
 def flatten_input(data: List[List[Any]]) -> List[Any]:
@@ -115,28 +109,17 @@ def pad_zeros(data: List[int], num_elem: int) -> List[int]:
     return data
 
 
-def rnn_train(name: str, file_name: Optional[str] = None,
-              clean_data: Optional[pd.DataFrame] = None) -> tf.keras.models.Sequential:
+def cnn_train(name: str, clean_data: pd.DataFrame) -> tf.keras.models.Sequential:
     """
-    rnn training
-    creates the tensorflow rnn model for word prediction
+    cnn training
+    creates the tensorflow cnn model for word prediction
     """
-    logger.info(f'run rnn training for {name}')
+    logger.info(f'run cnn training for {name}')
 
-    if file_name is None and clean_data is None:
-        raise ValueError('no file name or tokens provided')
-
-    # get training data
-    if clean_data is None:
-        file_path = file_path_relative(f'{clean_data_folder}/{file_name}')
-        logger.info(f'reading data from {file_path}')
-        clean_data = pd.read_csv(file_path, converters={
-            paragraph_key: literal_eval})
-
-    all_sentences: List[str] = flatten_input(clean_data[paragraph_key][:2])
-    tokens = [get_tokens(sentence) for sentence in all_sentences]
-    flattened_tokens: List[str] = flatten_input(tokens)
-    dataset_all_tokens = tf.data.Dataset.from_tensor_slices(flattened_tokens)
+    all_paragraphs: List[List[str]] = clean_data[paragraph_key]
+    all_sentences: List[str] = flatten_input(all_paragraphs)
+    all_tokens: List[str] = flatten_input([get_tokens(sentence) for sentence in all_sentences])
+    dataset_all_tokens = tf.data.Dataset.from_tensor_slices(all_tokens)
     logger.success('created all tokens text dataset')
 
     # get text vectorization model
@@ -146,19 +129,33 @@ def rnn_train(name: str, file_name: Optional[str] = None,
         text_vectorization_filepath, dataset_all_tokens)
 
     logger.info('get vectorized tokens')
-    vectorized_tokens: List[List[int]] = [flatten_input(text_vectorization_model.predict(
-        get_tokens(sentence), batch_size=batch_size)) for sentence in all_sentences]
+    vectorized_paragraphs_file = file_path_relative(
+        f'{clean_data_folder}/documents_vectorized.yml')
+    vectorized_paragraphs: Optional[List[List[int]]] = None
+    if exists(vectorized_paragraphs_file):
+        logger.info('found vectorized paragraphs file')
+        with open(vectorized_paragraphs_file, 'r') as yaml_file:
+            vectorized_paragraphs = yaml.load(yaml_file, Loader=yaml.FullLoader)
+    else:
+        vectorized_paragraphs = [flatten_input(text_vectorization_model.predict(
+            get_tokens(' '.join(paragraph)))) for paragraph in all_paragraphs]
+        with open(vectorized_paragraphs_file, 'w') as yaml_file:
+            yaml.dump(vectorized_paragraphs, yaml_file)
 
-    labels: List[int] = clean_data[class_key][:2]
+    # labels: List[int] = np.vstack(clean_data[class_key].to_numpy())
+    labels: List[int] = clean_data[class_key].to_numpy()
+    print(labels.shape)
 
     # create dataset
-    length_vectorized_list = len(max(vectorized_tokens, key=len))
-    vectorized_tokens_rectangular = [pad_zeros(sentence, length_vectorized_list) for sentence in vectorized_tokens]
+    length_vectorized_list = len(max(vectorized_paragraphs, key=len))
+    vectorized_tokens_rectangular = [pad_zeros(paragraph, length_vectorized_list) for paragraph in vectorized_paragraphs]
     complete_dataset = tf.data.Dataset.from_tensor_slices((vectorized_tokens_rectangular, labels))
     logger.info('created complete dataset')
-    # create sliding window
-    training_dataset = complete_dataset.batch(
-        window_size + 1, drop_remainder=True)
+
+    # buffer size is used to shuffle the dataset
+    buffer_size = 10000
+    training_dataset = complete_dataset.shuffle(buffer_size).batch(
+        batch_size, drop_remainder=True)
     logger.info('batched dataset')
 
     # print some samples
@@ -166,46 +163,34 @@ def rnn_train(name: str, file_name: Optional[str] = None,
     for input_example, target_example in training_dataset.take(1):
         logger.info(f"\ninput: {input_example}\ntarget: {target_example}")
 
-    # buffer size is used to shuffle the dataset
-    buffer_size = 10000
-    # create batches
-    training_dataset = training_dataset.shuffle(
-        buffer_size).batch(batch_size, drop_remainder=True)
     logger.info(f'training dataset shape: {training_dataset}')
 
-    model = build_rnn_model()
+    model = build_cnn_model(length_vectorized_list)
 
-    # use sequence loss in training
-    def loss(targets, logits):
-        """
-        return loss for given iteration
-        """
-        return tfa.seq2seq.sequence_loss(logits, targets, tf.ones([batch_size, window_size]))
-
-    # use adam optimizer
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
-    model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
+    model.compile(loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
+                    optimizer=tf.keras.optimizers.Adam(1e-4),
+                    metrics=['accuracy'])
     logger.success('model compiled')
 
-    rnn_filepath = file_path_relative(
-        f'{rnn_folder}/{name}/{rnn_file_name}')
+    cnn_filepath = file_path_relative(
+        f'{cnn_folder}/{name}/{cnn_file_name}')
 
     # save checkpoints to disk
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        filepath=rnn_filepath,
+        filepath=cnn_filepath,
         save_weights_only=True)
 
     # create visualizations
-    history = model.fit(training_dataset, epochs=epochs,
+    _history = model.fit(training_dataset, epochs=epochs,
                         callbacks=[checkpoint_callback])
     model.summary()
     return text_vectorization_model
 
 
-def rnn_predict_next(name: str,
-                     text_vectorization_model: tf.keras.models.Sequential = None,
-                     clean_input_file: Optional[str] = None,
-                     clean_input_data: Optional[pd.DataFrame] = None,
+def cnn_predict_next(name: str,
+                     clean_input_data: pd.DataFrame,
+                     model: tf.keras.models.Sequential,
+                     text_vectorization_model: tf.keras.models.Sequential,
                      num_lines_predict: Optional[int] = None,
                      num_predict: int = 1) -> None:
     """
@@ -213,32 +198,6 @@ def rnn_predict_next(name: str,
     """
 
     logger.success(f'running predictions for {name}')
-
-    if clean_input_file is None and clean_input_data is None:
-        raise ValueError('no input file name or data provided')
-
-    # create model from disk
-    model = build_rnn_model(1)
-    rnn_filepath = file_path_relative(
-        f'{rnn_folder}/{name}/{rnn_file_name}')
-    model.load_weights(rnn_filepath)
-    model.build(tf.TensorShape([1, None]))
-    model.summary()
-
-    # get text vectorizer
-    if text_vectorization_model is None:
-        text_vectorization_filepath = file_path_relative(
-            f'{models_folder}/{name}/vectorization')
-        text_vectorization_model = tf.keras.models.load_model(
-            text_vectorization_filepath)
-
-    # get testing data
-    if clean_input_data is None:
-        file_path = file_path_relative(
-            f'{clean_data_folder}/{clean_input_file}')
-        logger.info(f'reading data from {file_path}')
-        clean_input_data = pd.read_csv(file_path, converters={
-            paragraph_key: literal_eval})
 
     predict_sentences: List[List[str]] = clean_input_data[paragraph_key]
     if num_lines_predict is not None:

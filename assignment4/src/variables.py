@@ -9,9 +9,9 @@ part_1_data_folder: str = f'{raw_data_folder}/q1'
 clean_data_folder: str = f'{data_folder}/clean_data'
 models_folder = f'{data_folder}/models'
 output_folder: str = 'output'
-rnn_folder = f'{models_folder}/rnn'
+cnn_folder = f'{models_folder}/cnn'
 text_vectorization_folder = f'{models_folder}/vectorization'
-rnn_file_name = 'cp.ckpt'
+cnn_file_name = 'cp.ckpt'
 
 random_state: int = 0
 

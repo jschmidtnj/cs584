@@ -11,7 +11,7 @@ import tensorflow as tf
 import random
 from loguru import logger
 from clean_documents import clean
-from classification import rnn_train
+from classification_2 import cnn_train
 
 
 def initialize() -> None:
@@ -33,12 +33,12 @@ def main() -> None:
     initialize()
 
     # Clean Data
-    classification_data, classes_list = clean()
+    classification_data, _classes_list = clean()
     logger.info(
         f'\nsample of output data:\n{classification_data.sample(n=5)}')
 
     # Train Models
-    rnn_train('documents_rnn', clean_data=classification_data)
+    cnn_train('documents_cnn', classification_data)
 
 
 if __name__ == '__main__':
