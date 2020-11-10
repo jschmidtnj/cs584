@@ -40,7 +40,8 @@ def main() -> None:
         f'\nsample of output data:\n{classification_data.sample(n=5)}')
 
     # Train Models
-    # train_test_books(classification_data, classes_list)
+    train_test_books(classification_data, classes_list)
+    exit()
 
     # Clean Data
     sentiment_data = clean_reviews()
