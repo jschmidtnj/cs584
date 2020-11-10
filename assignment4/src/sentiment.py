@@ -7,41 +7,37 @@ from __future__ import annotations
 
 from sklearn.model_selection import train_test_split
 from typing import List, Tuple
-from variables import paragraph_key, class_key
+from variables import class_key, review_key, reviews_class_map
 from loguru import logger
 import pandas as pd
 import tensorflow as tf
-# import tensorflow_hub as hub
-from books import BookType, class_map
 from utils import standardize_text, get_precision_recall_fscore
 
 from tensorflow.keras.layers.experimental.preprocessing import TextVectorization
 
 TEST_SIZE = 0.2
-# EMBEDDING_LAYER_URL = 'https://tfhub.dev/google/universal-sentence-encoder/4'
 
 # read dataset in batches of
 batch_size = 10
 
 
-def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf.keras.models.Sequential, tf.keras.models.Sequential]:
+def train_test(clean_data: pd.DataFrame) -> Tuple[tf.keras.models.Sequential, tf.keras.models.Sequential]:
     """
     train test
-    run training and testing for book classification
+    creates the tensorflow models for sentiment analysis
     """
     logger.info(f'run training and testing for lstm and cnn')
 
-    all_paragraphs: List[str] = [
-        ' '.join(paragraph) for paragraph in clean_data[paragraph_key]]
+    all_reviews: List[str] = clean_data[review_key]
     labels: List[int] = clean_data[class_key]
 
-    train_paragraphs, test_paragraphs, train_labels, test_labels = train_test_split(
-        all_paragraphs, labels, test_size=TEST_SIZE)
+    train_reviews, test_reviews, train_labels, test_labels = train_test_split(
+        all_reviews, labels, test_size=TEST_SIZE)
 
     training_dataset = tf.data.Dataset.from_tensor_slices(
-        (train_paragraphs, train_labels))
+        (train_reviews, train_labels))
     testing_dataset = tf.data.Dataset.from_tensor_slices(
-        (test_paragraphs, test_labels))
+        (test_reviews, test_labels))
 
     # buffer size is used to shuffle the dataset
     buffer_size = 10000
@@ -73,13 +69,8 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
     embedding_dim = 16
 
     embedding_layer = tf.keras.layers.Embedding(vocab_size, embedding_dim)
-    # TODO - worry about pre-training at the end, delete if not necessary
-    # embedding_layer_2 = hub.KerasLayer(EMBEDDING_LAYER_URL,
-    #                                    dtype=tf.string, trainable=False)
 
-    num_classes: int = len(label_list)
-
-    output_layer = tf.keras.layers.Dense(num_classes)
+    output_layer = tf.keras.layers.Dense(1)
 
     lstm_model = tf.keras.models.Sequential([
         vectorize_layer,
@@ -91,9 +82,9 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
 
     learning_rate: int = 1e-3
     optimizer = tf.keras.optimizers.Adam(learning_rate)
-    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
-    metrics = [tf.keras.metrics.SparseCategoricalAccuracy()]
+    metrics = [tf.keras.metrics.BinaryAccuracy()]
 
     lstm_model.compile(optimizer=optimizer,
                        loss=loss,
@@ -110,21 +101,17 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
     _loss, accuracy = lstm_model.evaluate(testing_dataset)
     logger.info(f'accuracy: {accuracy}')
 
-    classes = range(num_classes)
+    classes = range(2)
 
     precision, recall, f_score, support = get_precision_recall_fscore(
         lstm_model, testing_dataset, classes)
 
     for i in classes:
-        current_book = label_list[i]
-        logger.info(f'{class_map[current_book]}:')
+        logger.info(f'{reviews_class_map[i]}:')
         logger.info(f'precision: {precision[i]}')
         logger.info(f'recall: {recall[i]}')
         logger.info(f'f-score: {f_score[i]}')
         logger.info(f'support: {support[i]}')
-
-    # running lstm_model.predict() will give the last hidden state
-    # TODO - need to figure out how to get the max hidden state
 
     cnn_model = tf.keras.models.Sequential([
         vectorize_layer,
@@ -156,8 +143,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
         cnn_model, testing_dataset, classes)
 
     for i in classes:
-        current_book = label_list[i]
-        logger.info(f'{class_map[current_book]}:')
+        logger.info(f'{reviews_class_map[i]}:')
         logger.info(f'precision: {precision[i]}')
         logger.info(f'recall: {recall[i]}')
         logger.info(f'f-score: {f_score[i]}')

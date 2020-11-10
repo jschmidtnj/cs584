@@ -3,6 +3,8 @@
 global user-defined variables
 """
 
+from typing import Dict
+
 data_folder: str = 'data'
 raw_data_folder: str = f'{data_folder}/raw_data'
 part_1_data_folder: str = f'{raw_data_folder}/q1'
@@ -22,3 +24,8 @@ label_key: str = 'label'
 class_key: str = 'class'
 
 review_key: str = 'review'
+
+reviews_class_map: Dict[int, str] = {
+    0: 'Negative',
+    1: 'Positive',
+}

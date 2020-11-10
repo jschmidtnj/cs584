@@ -8,10 +8,9 @@ from lxml import etree
 from ast import literal_eval
 from os.path import basename, splitext, exists
 from typing import Optional, List, cast
-from utils import get_glob, file_path_relative
-from variables import part_2_data_folder, clean_data_folder, class_key, label_key, review_key
+from utils import file_path_relative
+from variables import part_2_data_folder, clean_data_folder, class_key, label_key, review_key, reviews_class_map
 from loguru import logger
-from books import BookType, start_end_map, class_map
 import pandas as pd
 from typing import Tuple
 import yaml
@@ -33,8 +32,6 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> pd.DataFram
     data cleaning
     """
     data: pd.DataFrame = pd.DataFrame()
-    class_count: int = 0
-    label_list: List[BookType] = []
 
     get_from_disk = clean_data_basename is not None
 
@@ -65,7 +62,7 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> pd.DataFram
             trimmed_text = decoded_text.strip()
             reviews.append(trimmed_text)
 
-        class_name: str = 'Negative' if class_val == 0 else 'Positive'
+        class_name: str = reviews_class_map[class_val]
 
         logger.info(
             f'number of reviews in class "{class_name}": {len(reviews)}')
