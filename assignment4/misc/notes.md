@@ -7,3 +7,4 @@
 - https://www.tensorflow.org/tutorials/images/cnn
 - https://www.tensorflow.org/hub/tutorials/cord_19_embeddings_keras
 - https://stackoverflow.com/questions/56382500/calculate-recall-for-each-class-after-each-epoch-in-tensorflow-2
+- `./src/main.py > output/logs_1.txt 2>&1`

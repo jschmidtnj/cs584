@@ -27,7 +27,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
     train test
     run training and testing for book classification
     """
-    logger.info(f'run training and testing for lstm and cnn')
+    logger.info('run training and testing for lstm and cnn')
 
     all_paragraphs: List[str] = [
         ' '.join(paragraph) for paragraph in clean_data[paragraph_key]]
@@ -38,6 +38,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
     train_paragraphs, validation_paragraphs, train_labels, validation_labels = train_test_split(
         train_paragraphs, train_labels, test_size=VALIDATION_SIZE)
 
+    # create training, validation and testing datasets
     training_dataset = tf.data.Dataset.from_tensor_slices(
         (train_paragraphs, train_labels))
     validation_dataset = tf.data.Dataset.from_tensor_slices(
@@ -47,6 +48,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
 
     # buffer size is used to shuffle the dataset
     buffer_size = 10000
+    # shuffle and batch datasets
     training_dataset = training_dataset.shuffle(buffer_size).batch(
         batch_size, drop_remainder=True)
     validation_dataset = validation_dataset.shuffle(buffer_size).batch(
@@ -69,6 +71,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
     # the proof of concept worked well, but implementing it would require changing
     # all of the code below.
 
+    # create vectorization layer
     vectorize_layer = TextVectorization(
         standardize=standardize_text,
         max_tokens=vocab_size,
@@ -79,6 +82,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
     training_dataset = training_dataset.cache().prefetch(buffer_size=autotune)
 
     train_text = training_dataset.map(lambda x, y: x)
+    # adapt vectorization layer to text input
     vectorize_layer.adapt(train_text)
 
     embedding_dim = 16
@@ -89,6 +93,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
 
     output_layer = tf.keras.layers.Dense(num_classes)
 
+    # create lstm model
     lstm_model = tf.keras.models.Sequential([
         vectorize_layer,
         embedding_layer,
@@ -98,29 +103,35 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
     ])
 
     learning_rate: int = 1e-3
+    # create optimizer and loss function
     optimizer = tf.keras.optimizers.Adam(learning_rate)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
+    # save accuracy metric on each epoch
     metrics = [tf.keras.metrics.SparseCategoricalAccuracy()]
 
     lstm_model.compile(optimizer=optimizer,
                        loss=loss,
                        metrics=metrics)
 
+    # optional callback, described below
     _lstm_callbacks = [UseMaxWeights()]
     # tried setting callbacks in the fit function below to lstm_callbacks
     # to use the max of all hidden states as the context vector for prediction
     # it did not work as well as using the last hidden state, so I am
     # not using the callback
 
+    # train model and save history
     hist = lstm_model.fit(
         training_dataset,
-        epochs=1,
+        epochs=12,
         callbacks=[],
         validation_data=validation_dataset)
 
+    # plot training loss
     plot_train_val_loss(hist, 'books_lstm')
 
+    # print model summary
     logger.info('lstm model summary:')
     lstm_model.summary()
 
@@ -146,7 +157,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
         tf.keras.layers.ZeroPadding1D(1),
         tf.keras.layers.Conv1D(32, 3, activation='relu'),
         tf.keras.layers.MaxPooling1D(3),
-        tf.keras.layers.Conv1D(32, 2, activation='relu'),
+        tf.keras.layers.Conv1D(24, 2, activation='relu'),
         tf.keras.layers.MaxPooling1D(2),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(64, activation='relu'),
@@ -157,7 +168,7 @@ def train_test(clean_data: pd.DataFrame, label_list: List[BookType]) -> Tuple[tf
                       loss=loss,
                       metrics=['accuracy'])
 
-    hist = cnn_model.fit(training_dataset, epochs=1,
+    hist = cnn_model.fit(training_dataset, epochs=14,
                          callbacks=[],
                          validation_data=validation_dataset)
 

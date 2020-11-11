@@ -92,4 +92,38 @@ In the sentiment analysis models, most of the layers are the same. They only nee
 
 ## Model Statistics and Comparison
 
-TODO - put stats in a table here - recall, precision, f1 score, accuracy
+### Author Classification
+
+|                         | precision | recall | f1-score | support |
+|-------------------------|-----------|--------|----------|---------|
+| SGD Logistic Regression | -         | -      | -        | -       |
+| Jane Austen             | 0.97      | 0.94   | 0.95     | 496     |
+| Fyodor Dostoyevsky      | 0.96      | 0.99   | 0.97     | 1186    |
+| Arthur Conan Doyle      | 0.96      | 0.78   | 0.86     | 102     |
+| Multilayer Perceptron   | -         | -      | -        | -       |
+| Jane Austen             | 0.97      | 0.95   | 0.96     | 496     |
+| Fyodor Dostoyevsky      | 0.96      | 0.99   | 0.97     | 1186    |
+| Arthur Conan Doyle      | 0.90      | 0.77   | 0.83     | 102     |
+| LSTM                    | -         | -      | -        | -       |
+| Jane Austen             | 0.89      | 0.81   | 0.92     | 506     |
+| Fyodor Dostoyevsky      | 0.80      | 0.99   | 0.89     | 1160    |
+| Arthur Conan Doyle      | 0.81      | 0.86   | 0.91     | 114     |
+| CNN                     | -         | -      | -        | -       |
+| Jane Austen             | 0.98      | 0.90   | 0.94     | 504     |
+| Fyodor Dostoyevsky      | 0.98      | 0.95   | 0.96     | 1162    |
+| Arthur Conan Doyle      | 0.86      | 0.76   | 0.87     | 114     |
+
+### Review Sentiment Analysis
+
+|      | accuracy |
+|------|----------|
+| LSTM | 0.72     |
+| CNN  | 0.85     |
+
+### Analysis
+
+After running the models in six different trial iterations, tweaking the hyper-parameters each time, I have arrived at a configuration that outputs moderately good results for the LSTM and CNN models. For the paragraph author classification, a hidden layer size of 128 for the LSTM seemed to work best, as going higher would result in over-fitting on the training data. Increasing the epoch size beyond 12 also caused over-fitting for the model, with the hidden layer sizes tested. For the CNN, a first filter size of 32 and second of 24 seemed to work best, trained over 14 epochs. The idea was to have a larger convolution followed by a smaller one to increase granularity, and this seemed to work well. In comparison to the Logistic Regression and MLP models, the Logistic Regression seemed to beat the LSTM and CNN in most categories, with the CNN outperforming the LSTM. This is surprising, because the more complicated models generally output better results. The discrepancy most likely stems from the limited training data. If a pre-trained embedding layer was used, it would most likely increase the LSTM and CNN metrics.
+
+The review sentiment analysis also showed interesting results. I expected that the accuracy scores for the reviews would be similar to the book paragraphs, at around 80-90%, but instead it was a bit lower, at 0.72% and 0.85%. This is most likely because the writing styles of the authors of the reviews are somewhat different, and sentiment analysis is a completely different problem than paragraph classification. After testing several different combinations of epochs and hidden layer sizes, a hidden layer size of 256 trained over 12 epochs seemed to work best for the LSTM. Any larger and the model would be overfitted. In the CNN model, different combinations of filter sizes and epochs were tested, with a combination of 32 and 64 for the filters and 16 epochs for the training being used. The filter combination followed the same idea as the paragraph classification model.
+
+In conclusion, this project was fairly successful. While the models did not perform as well as the logistic regression created for the original assignment, it was not that far off, and with the addition of a pre-trained embedding layer the performance should increase. The review sentiment models also performed well, but not as well as it was first postulated. Again, pre-training may help here as well.

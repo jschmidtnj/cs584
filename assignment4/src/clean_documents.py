@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-data clean (clean.py)
+data clean for books (clean_documents.py)
+
+note - this is the same as in assignment 1 for the most part
 """
 
 import re

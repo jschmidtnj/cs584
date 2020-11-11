@@ -47,15 +47,18 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> pd.DataFram
 
     data: pd.DataFrame = pd.DataFrame()
 
+    # iterate over the files
     for class_val, file_path in enumerate([file_path_relative(f'{part_2_data_folder}/negative.review'),
                                 file_path_relative(f'{part_2_data_folder}/positive.review')]):
         root: Optional[etree._Element] = None
         with open(file_path, 'rb') as current_file:
             parser = etree.XMLParser(recover=True)
+            # parse the xml
             root = etree.fromstring(f'<?xml version="1.0"?><root_elem>{current_file.read()}</root_elem>', parser=parser)
 
         reviews: List[str] = []
 
+        # find all of the review_text tags recursively
         for elem in root.findall('.//review_text'):
             cast_elem: etree._Element = cast(etree._Element, elem)
             decoded_text: str = literal_eval(f"'{cast_elem.text}'")
@@ -67,6 +70,7 @@ def clean(clean_data_basename: Optional[str] = default_file_name) -> pd.DataFram
         logger.info(
             f'number of reviews in class "{class_name}": {len(reviews)}')
 
+        # create dataframe
         data = pd.concat([data, pd.DataFrame({
             review_key: reviews,
             label_key: class_name,
