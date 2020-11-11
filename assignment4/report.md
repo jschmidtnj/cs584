@@ -90,6 +90,8 @@ In the sentiment analysis models, most of the layers are the same. They only nee
 
 ![Training and Validation Loss Reviews CNN](./output/reviews_cnn.png)
 
+\newpage
+
 ## Model Statistics and Comparison
 
 ### Author Classification
