@@ -41,7 +41,6 @@ def main() -> None:
 
     # Train Models
     train_test_books(classification_data, classes_list)
-    exit()
 
     # Clean Data
     sentiment_data = clean_reviews()
