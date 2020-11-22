@@ -10,3 +10,7 @@
 - https://www.kaggle.com/c/tweet-sentiment-extraction/notebooks
 
 decided to do this one: https://www.kaggle.com/c/jigsaw-multilingual-toxic-comment-classification
+
+- https://www.kaggle.com/faressayah/natural-language-processing-nlp-for-beginners
+- https://www.kaggle.com/tanulsingh077/deep-learning-for-nlp-zero-to-transformers-bert
+- https://www.kaggle.com/xhlulu/jigsaw-tpu-xlm-roberta
