@@ -156,6 +156,7 @@ dependencies:
     - astunparse==1.6.3
     - cachetools==4.1.1
     - chardet==3.0.4
+    - filelock==3.0.12
     - flatbuffers==1.12
     - gast==0.4.0
     - google-auth==1.22.1
@@ -173,9 +174,11 @@ dependencies:
     - pyasn1==0.4.8
     - pyasn1-modules==0.2.8
     - python-slugify==4.0.1
+    - regex==2020.11.13
     - requests==2.24.0
     - requests-oauthlib==1.3.0
     - rsa==4.6
+    - sacremoses==0.0.43
     - tb-nightly==2.4.0a20201019
     - tensorboard-plugin-wit==1.7.0
     - tensorflow-addons==0.11.2
@@ -183,7 +186,9 @@ dependencies:
     - text-unidecode==1.3
     - tf-estimator-nightly==2.4.0.dev2020101901
     - tf-nightly==2.4.0.dev20201019
+    - tokenizers==0.9.4
     - tqdm==4.54.1
+    - transformers==4.0.1
     - typeguard==2.10.0
     - urllib3==1.25.11
     - werkzeug==1.0.1
