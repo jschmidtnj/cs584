@@ -2,8 +2,8 @@
 
 set -e
 
-cd ../scripts/precommit
+cd ../../scripts/precommit
 
-./python.sh assignment1
+./python.sh final_project/code
 
 cd -
