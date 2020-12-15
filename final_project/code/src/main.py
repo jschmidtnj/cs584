@@ -9,14 +9,25 @@ from variables import random_state
 import numpy as np
 import tensorflow as tf
 import random
-from loguru import logger
-from data import read_data
-
 import matplotlib.pyplot as plt
 import seaborn as sns
+from loguru import logger
+from data import read_data
+from data_attention import read_data_attention
+from embeddings import build_embeddings
+from simple_rnn import simple_rnn
+from lstm import run_lstm
+from gru import run_gru
+from rnn import run_rnn
+from distilibert import run_distilibert
+from roberta import run_roberta
+
+EMBEDDING_SIZE_Y: int = 300
+# epochs for attention models
+EPOCHS: int = 3
 
 
-def initialize():
+def initialize() -> tf.distribute.TPUStrategy:
     """
     initialize before running anything
     """
@@ -56,7 +67,27 @@ def main() -> None:
     strategy = initialize()
 
     # read in the data
-    read_data(strategy)
+    x_train_padded, x_valid_padded, y_train, y_valid, max_len, word_indexes = read_data()
+
+    # run base models
+    simple_rnn(strategy, x_train_padded, x_valid_padded, y_train,
+               y_valid, max_len, len(word_indexes) + 1, EMBEDDING_SIZE_Y)
+    embeddings_output = build_embeddings(EMBEDDING_SIZE_Y, word_indexes)
+    run_lstm(strategy, x_train_padded, x_valid_padded, y_train, y_valid,
+             max_len, len(word_indexes) + 1, EMBEDDING_SIZE_Y, embeddings_output)
+    run_gru(strategy, x_train_padded, x_valid_padded, y_train, y_valid,
+            max_len, len(word_indexes) + 1, EMBEDDING_SIZE_Y, embeddings_output)
+    run_rnn(strategy, x_train_padded, x_valid_padded, y_train, y_valid,
+            max_len, len(word_indexes) + 1, EMBEDDING_SIZE_Y, embeddings_output)
+
+    # read in attention data
+    x_train, x_valid, y_train, y_valid, train_dataset, \
+        valid_dataset, test_dataset, batch_size = read_data_attention(
+            strategy, max_len)
+    run_distilibert(strategy, x_train, x_valid, y_train, y_valid,
+                    train_dataset, valid_dataset, test_dataset, max_len, EPOCHS, batch_size)
+    run_roberta(strategy, x_train, x_valid, y_train, y_valid,
+                train_dataset, valid_dataset, test_dataset, max_len, EPOCHS, batch_size)
 
 
 if __name__ == '__main__':
