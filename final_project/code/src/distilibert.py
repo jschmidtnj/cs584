@@ -11,6 +11,8 @@ from loguru import logger
 from utils import roc_auc, build_model
 from transformers import TFDistilBertModel
 
+MODEL: str = 'distilbert-base-multilingual-cased'
+
 
 def run_distilibert(strategy: tf.distribute.TPUStrategy, x_train: np.array,
                     x_valid: np.array, _y_train: np.array, y_valid: np.array,
@@ -20,13 +22,10 @@ def run_distilibert(strategy: tf.distribute.TPUStrategy, x_train: np.array,
     """
     create and run distilibert on training and testing data
     """
-    logger.info('build lstm')
+    logger.info('build distilibert')
 
     with strategy.scope():
-        transformer_layer = (
-            TFDistilBertModel
-            .from_pretrained('distilbert-base-multilingual-cased')
-        )
+        transformer_layer = TFDistilBertModel.from_pretrained(MODEL)
         model = build_model(transformer_layer, max_len=max_len)
     model.summary()
 
@@ -46,7 +45,7 @@ def run_distilibert(strategy: tf.distribute.TPUStrategy, x_train: np.array,
     )
 
     scores = model.predict(test_dataset, verbose=1)
-    logger.info(f"AUC: {roc_auc(scores, y_valid):.2f}")
+    logger.info(f"AUC: {roc_auc(scores, y_valid):.4f}")
 
     return model
 

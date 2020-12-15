@@ -80,14 +80,20 @@ def main() -> None:
     run_rnn(strategy, x_train_padded, x_valid_padded, y_train, y_valid,
             max_len, len(word_indexes) + 1, EMBEDDING_SIZE_Y, embeddings_output)
 
+    attention_max_len = 192
+
     # read in attention data
     x_train, x_valid, y_train, y_valid, train_dataset, \
         valid_dataset, test_dataset, batch_size = read_data_attention(
-            strategy, max_len)
+            strategy, attention_max_len)
     run_distilibert(strategy, x_train, x_valid, y_train, y_valid,
-                    train_dataset, valid_dataset, test_dataset, max_len, EPOCHS, batch_size)
+                    train_dataset, valid_dataset, test_dataset, attention_max_len, EPOCHS, batch_size)
+
+    x_train, x_valid, y_train, y_valid, train_dataset, \
+        valid_dataset, test_dataset, batch_size = read_data_attention(
+            strategy, attention_max_len)
     run_roberta(strategy, x_train, x_valid, y_train, y_valid,
-                train_dataset, valid_dataset, test_dataset, max_len, EPOCHS, batch_size)
+                train_dataset, valid_dataset, test_dataset, attention_max_len, EPOCHS, batch_size)
 
 
 if __name__ == '__main__':

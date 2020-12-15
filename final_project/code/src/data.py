@@ -42,8 +42,7 @@ def read_data() -> Tuple[np.array, np.array, np.array, np.array, int, Dict[str, 
     """
     logger.info('reading data')
 
-    train = pd.read_csv(file_path_relative(
-        f'{raw_data_folder}/jigsaw-toxic-comment-train.csv'))
+    train = pd.read_csv(file_path_relative('jigsaw-toxic-comment-train.csv'))
 
     # drop unused columns
     train.drop(['severe_toxic', 'obscene', 'threat', 'insult',

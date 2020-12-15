@@ -35,7 +35,7 @@ def simple_rnn(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
               strategy.num_replicas_in_sync)
 
     scores = model.predict(x_valid_padded)
-    logger.info(f"AUC: {roc_auc(scores, y_valid):.2f}")
+    logger.info(f"AUC: {roc_auc(scores, y_valid):.4f}")
 
     return model
 

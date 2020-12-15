@@ -7,8 +7,8 @@ build embeddings for all data
 
 import numpy as np
 from loguru import logger
-from utils import file_path_relative
-from variables import raw_data_folder
+from utils import file_path_relative, default_base_folder
+from variables import IN_KAGGLE
 from typing import Dict
 from tqdm import tqdm
 
@@ -20,7 +20,9 @@ def build_embeddings(embedding_size_y: int, word_indexes: Dict[str, int]) -> np.
     logger.info('build glove embeddings')
 
     embeddings_indexes: Dict[str, np.array] = {}
-    with open(file_path_relative(f'{raw_data_folder}/glove.840B.{embedding_size_y}d.txt'), encoding='utf-8') as glove_file:
+    with open(file_path_relative(f'glove.840B.{embedding_size_y}d.txt',
+                                 base_folder=default_base_folder if not IN_KAGGLE else 'glove840b300dtxt'),
+              encoding='utf-8') as glove_file:
         for line in tqdm(glove_file):
             words = line.split(' ')
             word = words[0]

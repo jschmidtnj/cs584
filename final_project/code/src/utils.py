@@ -8,14 +8,19 @@ from pathlib import Path
 from sklearn.metrics import roc_curve, auc
 from typing import Any
 import tensorflow as tf
+from variables import raw_data_folder, IN_KAGGLE
+
+default_base_folder: str = raw_data_folder if not IN_KAGGLE else 'jigsaw-multilingual-toxic-comment-classification'
 
 
-def file_path_relative(rel_path: str) -> str:
+def file_path_relative(rel_path: str, base_folder: str = default_base_folder) -> str:
     """
     get file path relative to base folder
     """
-    return join(
-        abspath(join(Path(__file__).absolute(), '../..')), rel_path)
+    current_path = join(Path(__file__).absolute(), '../../')
+    if IN_KAGGLE:
+        current_path = '/kaggle/input/'
+    return join(abspath(current_path), base_folder, rel_path)
 
 
 def roc_auc(predictions, target):

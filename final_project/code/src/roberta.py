@@ -9,7 +9,9 @@ import tensorflow as tf
 import numpy as np
 from loguru import logger
 from utils import roc_auc, build_model
-from transformers import TFRobertaPreTrainedModel
+from transformers import TFAutoModel
+
+MODEL: str = 'jplu/tf-xlm-roberta-large'
 
 
 def run_roberta(strategy: tf.distribute.TPUStrategy, x_train: np.array,
@@ -23,7 +25,7 @@ def run_roberta(strategy: tf.distribute.TPUStrategy, x_train: np.array,
     logger.info('build roberta')
 
     with strategy.scope():
-        transformer_layer = TFRobertaPreTrainedModel()
+        transformer_layer = TFAutoModel.from_pretrained(MODEL)
         model = build_model(transformer_layer, max_len=max_len)
     model.summary()
 
@@ -43,7 +45,7 @@ def run_roberta(strategy: tf.distribute.TPUStrategy, x_train: np.array,
     )
 
     scores = model.predict(test_dataset, verbose=1)
-    logger.info(f"AUC: {roc_auc(scores, y_valid):.2f}")
+    logger.info(f"AUC: {roc_auc(scores, y_valid):.4f}")
 
     return model
 

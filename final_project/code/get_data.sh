@@ -11,7 +11,7 @@ cd data/raw_data
 rm -rf *
 kaggle competitions download -c jigsaw-multilingual-toxic-comment-classification
 kaggle datasets download -d takuok/glove840b300dtxt
-unzip *.zip
+unzip '*.zip'
 rm *.zip
 
 cd -
