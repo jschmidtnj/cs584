@@ -65,35 +65,67 @@ After creating the XLM transformers models, the final step of the project was to
 
 \subsection{Evaluation}
 
-This system will be scored based on the speed and accuracy of classification. Model size and training time will not be considered; any problem arising from them can be mitigated by allocating additional resources and optimizing implementations. The final score will be weighted 80\% accuracy and 20\% speed because increased error may exacerbate the current problems with toxic comments in social media \cite{10.1145/3200947.3208069}. The more accurate the model is, the less human intervention is required, and the less false-negatives slip through the classification system. Prediction speed is important to ensure timely communication, but it is not critical.
+This system was scored based on the speed and accuracy of classification. Model size and training time were not considered; any problem arising from them can be mitigated by allocating additional resources and optimizing implementations. The final score was weighted 80\% accuracy and 20\% speed because increased error may exacerbate the current problems with toxic comments in social media \cite{10.1145/3200947.3208069}. The more accurate the model is, the less human intervention is required, and the less false-negatives slip through the classification system. Prediction speed is important to ensure timely communication, but it is not critical.
 
 \section{Experimental Design}
 
-software; algorithms; data sets used in
-your experiments; specify sources; software publicly available
-used; software/algorithms that you implemented; experimental
-setting; training/testing. cross-validation; parameter setting;
-validation measures: accuracy, precision, recall, RMSE, MSE,
-running time etc; Do NOT write the steps to install the
-software you used and similar system issues.
+\subsection{Software}
+
+The software used for this experiment was written mainly using the Tensorflow 2 framework. Scikit-Learn, Pandas, Numpy, and MatplotLib were used for data manipulation and visualization, while Tensorflow and Keras were used for constructing and running all of the models. Tensorflow was selected because it is widely adopted in industry, and there are many cloud services that accelerate training with Tensorflow models. For building the transformers models, the Hugging Face Transformers library was used because of its compatibility with Tensorflow and its support for both DistilBERT and XLM Roberta.
 
 \subsection{Data Sets}
 
-There are several provided datasets for the Kaggle competition. Of these, two are from previous competitions --- \textit{toxic comments} and \textit{comments with unintended bias}. These datasets contain 223,549 and 187,6468 rows, respectively, with each row consisting of a unique id, the comment text, and its multi-label classification --- toxic, severe\_toxicity, obscene, insult, threat. These datasets will be used for this project, as training data.
+The datasets used for this experiment were provided by the Kaggle competition. Of these, two are from previous competitions --- \textit{toxic comments} and \textit{comments with unintended bias}. These datasets contain 223,549 and 1,876,468 rows, respectively, with each row consisting of a unique id, the comment text, and its multi-label classification --- toxic, severe\_toxicity, obscene, insult, threat. These datasets were combined and used as training data.
 
-The \textit{toxic comments} dataset contains an additional label - identity\_hate, which is not present in the second training dataset. Therefore this label will be ignored. Out of the 223,549 rows, there are only 21,384 toxic comments, which is about 10\% of the dataset. There are 1,962 extremely toxic comments (0.88\%), 12,140 obscene comments (5.4\%), 689 threats (0.3\%), and 11,304 insults (5\%). All of the comments are written in English.
+The \textit{toxic comments} dataset contains an additional label - identity\_hate, which is not present in the second training dataset. Therefore this label is be ignored. Out of the 223,549 rows, there are only 21,384 toxic comments, which is about 10\% of the dataset. There are 1,962 extremely toxic comments (0.88\%), 12,140 obscene comments (5.4\%), 689 threats (0.3\%), and 11,304 insults (5\%). All of the comments are written in English.
 
-The \textit{comments with unintended bias} dataset contains many more labels that do not exist in the \textit{toxic comments} dataset (asian, atheist, female, muslim, etc.). But since this project is focused on classifying toxicity, and not on identity bias, these extra fields will be ignored. The toxicity in this dataset is not binary, and is instead in a range of values from 0 to 1. The mean toxicity is 0.1 with a standard deviation of 0.2. Since this is a range of values, it may provide better results than the first dataset, which will have values skewed to extremes because of its binary classification. Severe toxicity has a mean of 0.001 with a standard deviation of 0.02; obscene 0.01 and 0.06, insult 0.08 and 0.18, and threat 0.01 and 0.05, respectively. All of the comments are written in English.
+The \textit{comments with unintended bias} dataset contains many more labels that do not exist in the \textit{toxic comments} dataset (asian, atheist, female, muslim, etc.). Since this project is focused on classifying toxicity, and not on identity bias, these extra fields were ignored. The toxicity in this dataset is not binary, and is instead in a range of values from 0 to 1. The mean toxicity is 0.1 with a standard deviation of 0.2. This range of values was converted to binary in order to match the first dataset. Severe toxicity has a mean of 0.001 with a standard deviation of 0.02; obscene 0.01 and 0.06, insult 0.08 and 0.18, and threat 0.01 and 0.05, respectively. All of the comments are written in English.
 
-After training, there are two additional datasets provided, one called "validation" and another called "test". The validation dataset contains 8,000 rows of comments and binary toxic classifications. There are 1,230 toxic comments (15.4\%). The comments in the validation dataset are written in several foreign languages. The test dataset is used for submission to the competition, containing 15\% of the complete competition test dataset. The test dataset contains 63,812 rows of comments and languages the comments were written in.
+In total in the training data, there were 2,133,743 comments provided, of which 1,998,903 are normal and 134,840 are toxic. This is a large dataset, which made it ideal for training the transformers models.
 
+After training, there were two additional datasets provided, one called "validation" and another called "test". The validation dataset contains 8,000 rows of comments and binary toxic classifications. There are 1,230 toxic comments (15.4\%). The comments in the validation dataset are written in several foreign languages. The test dataset was used for submission to the competition, containing 15\% of the complete competition test dataset. The test dataset contains 63,812 rows of comments and languages the comments were written in.
 
+\subsection{Model Architecture}
+
+When creating the different machine learning models, the goal was to keep the architecture as simple as possible, so that it would be possible to change only several hyperparameters at a time whn optimizing. The Simple RNN, LSTM, GRU, and bi-directional LSTM all used binary cross-entropy for the loss function, and the adam optimizer for optimization. These were chosen because they are the same as those used in the transformers models. 
+
+The Simple RNN contained three layers - an embedding layer with an output shape 1500x300, a SimpleRNN layer of size 100, and a dense layer to output the binary classification. A Keras tokenizer was used to normalize the input text by removing punctuation and making it lowercase, and convert the text into integer vectors with TF-IDF. Different internal units and output shapes were tested for both the SimpleRNN and embedding layer, respectively, in multiples of 50. But these were the parameters that resulted in the best accuracy.
+
+The LSTM, GRU, and bi-directional LSTM all used the same pretrained GloVe word embedding layer. The GloVe embeddings data was found in a separate kaggle dataset, from "glove840b300dtxt".
+
+The simple LSTM contained three layers - the aforementioned embedding layer (with an output shape of 1500x300), an LSTM layer of size 100, and a dense layer to output the binary classification. Different internal units and outputs were tested for both the LSTM and embedding layers, in multiples of 25, but these parameters resulted in the highest accuracy.
+
+The GRU contained four layers - the same embedding layer, a one-dimensional spatial dropout with a probability of 0.3, a GRU layer of size 300, and a binary dense layer. Different spacial dropouts and GRU internal sizes were tested, but again these parameters resulted in the highest accuracy.
+
+The bi-directional LSTM contained three layers - the same embedding layer, a bidirectional LSTM layer with dropout and recurrent dropout of 0.3, and a binary dense layer. In this model, the only hyperparameters that were tested were the dropouts and internal unit size. The internal unit size was modified by multiples of 25, and the dropout by 0.1, with the parameters chosen based off the combination with the highest accuracy.
+
+The transformer models were a bit different in that they each had individual tokenizers. Both of the tokenizers for these models split the text into vectors of words, add tokens for the start and end of the sentence, and add padding to make each vector the same length. Then they convert the text to numeric values so that it is ready for training input.
+
+Both the DistilBERT and XLM Roberta models contained four layers - an input layer, the transformer layer (either DistilBERT or XLM Roberta), and two dimensionality reduction layers. The first dimensional reduction layer is specific to the given transformer, and the second is a dense layer, converting the output to a binary classification. The one hyperparameter that was optimized was the shape of the input words. 192 words is the longest message length in the dataset, and making the input size larger had a slightly negative impact on the accuracy of the model.
 
 \section{Experimental Results}
 
 Describe and comment the results
 obtained. You should be able to elaborate and answer the
 questions/issues raised in the introduction/approach sections.
+
+To compare all of the models, the primary metrics used were the area under the ROC curve and the training and validation loss curves. By looking at the training and validation loss curves, it is easy to see if the model is overfit, underfit, if the data is unrepresentative, or a good fit. Models with higher areas under the ROC curve are better at classifying the toxic comments. Precision and recall were ignored because they would not be as useful as area under the ROC curve in determining the most accurate classification model. All of the models have relatively fast prediction times (at least 10 predictions per second), so the main metric used for comparison is area under the ROC curve.
+
+\begin{figure}
+\begin{tabular*}{\textwidth}{c @{\extracolsep{\fill}} cc}
+\subfloat[Simple RNN]{\includegraphics[width = 3in]{../code/output/simple_rnn.jpg}} &
+\subfloat[LSTM]{\includegraphics[width = 3in]{../code/output/lstm.jpg}} \\
+\subfloat[GRU]{\includegraphics[width = 3in]{../code/output/gru.jpg}} &
+\subfloat[bidirectional LSTM]{\includegraphics[width = 3in]{../code/output/bidirectional_lstm.jpg}} \\
+\subfloat[DistilBERT]{\includegraphics[width = 3in]{../code/output/distilbert.jpg}} &
+\subfloat[XLM Roberta]{\includegraphics[width = 3in]{../code/output/xlm_roberta.jpg}}
+\end{tabular*}
+\caption{Training and Validation Loss}
+\end{figure}
+
+With the Simple RNN model, after training for 15 epochs, the resulting accuracy was 90.86\%. It took 5 minutes to train, and the area under the ROC curve was 68.726\%. This model was relatively fast to train, which is good, but the performance is far worse compared to the other models studied.
+
+
 
 \section{Conclusion and Future Work}
 
