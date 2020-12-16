@@ -8,7 +8,7 @@ run lstm on dataset
 import tensorflow as tf
 import numpy as np
 from loguru import logger
-from utils import roc_auc
+from utils import roc_auc, plot_train_val_loss
 
 
 def run_lstm(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
@@ -37,7 +37,9 @@ def run_lstm(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
 
     model.summary()
 
-    model.fit(x_train_padded, y_train, batch_size=64*strategy.num_replicas_in_sync)
+    history = model.fit(x_train_padded, y_train, batch_size=64 *
+                        strategy.num_replicas_in_sync)
+    plot_train_val_loss(history, 'lstm')
 
     scores = model.predict(x_valid_padded)
     logger.info(f"AUC: {roc_auc(scores, y_valid):.4f}")

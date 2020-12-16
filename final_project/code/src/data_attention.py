@@ -5,13 +5,11 @@ data file
 read in data
 """
 
-from typing import Tuple, List, Any
+from typing import Tuple, Any
 import pandas as pd
 import tensorflow as tf
 from loguru import logger
 from utils import file_path_relative
-from variables import raw_data_folder
-from tqdm import tqdm
 import numpy as np
 from transformers import DistilBertTokenizer
 

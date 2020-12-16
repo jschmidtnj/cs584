@@ -37,7 +37,8 @@ def run_gru(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
 
     model.summary()
 
-    model.fit(x_train_padded, y_train, batch_size=64*strategy.num_replicas_in_sync)
+    model.fit(x_train_padded, y_train, batch_size=64 *
+              strategy.num_replicas_in_sync)
 
     scores = model.predict(x_valid_padded)
     logger.info(f"AUC: {roc_auc(scores, y_valid):.4f}")

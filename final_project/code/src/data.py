@@ -9,7 +9,6 @@ import pandas as pd
 import tensorflow as tf
 from loguru import logger
 from utils import file_path_relative
-from variables import raw_data_folder
 from typing import List, Tuple, Dict
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split

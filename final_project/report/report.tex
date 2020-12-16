@@ -35,7 +35,7 @@ jschmid3@stevens.edu
 \maketitle
 \begin{abstract}
 
-Most comments on online social platforms are constructive, increasing human interactions and quality of life. However, with the immense amount of information produced daily there is a rise in online personal attacks, harassment, and cyber-bullying with toxic comments. This has triggered the research community to identify an efficient and accurate model for predicting the toxicity of online comments, but so far there is no clear solution. Due to the global nature of this problem, any classification model would need to work with many foreign languages and on all online platforms. In this work, a project is proposed for exploring new model designs based on transformers and specifically XML Roberta. The model designs will be evaluated based on accuracy and speed, utilizing datasets from the "Multilingual Toxic Comment Classification" Kaggle competition.
+Most comments on online social platforms are constructive, increasing human interactions and quality of life. However, with the immense amount of information produced daily there is a rise in online personal attacks, harassment, and cyber-bullying with toxic comments. This has triggered the research community to identify an efficient and accurate model for predicting the toxicity of online comments, but so far there is no clear solution. Due to the global nature of this problem, any classification model would need to work with many foreign languages and on all online platforms. In this work, a project is proposed for exploring new model designs based on transformers and specifically XLM Roberta. The model designs will be evaluated based on accuracy and speed, utilizing datasets from the "Multilingual Toxic Comment Classification" Kaggle competition.
 
 \end{abstract}
 
@@ -59,9 +59,23 @@ Unfortunately, there seems to be little research on how accurately toxicity can 
 
 There are several approaches that were tested in this paper. One goal of this project was to create each layer of the transformers architecture separately, with the layers being a simple RNN, LSTM, bi-directional LSTM, and GRU \cite{lample2019crosslingual}. That way the impact of each of the layers of the architecture could be compared to the performance of the transformers architecture as a whole, and it would be straight-forward to determine if the final layers are even necessary to achieve good performance. More elementary NLP models, such as RandomForest and n-grams, were not explored in this project because the literature review revealed that these models do not have good performance with multiple languages and smaller datasets.
 
-The final models tested were those based on the transformers architecture, pre-trained on multiple languages. These models are known as cross-lingual language models (XLM)s \cite{lample2019crosslingual}. There were two models tested - Multilingual DistilBERT, and XML Roberta. XML Roberta is currently one of the best transformers for cross-language classification \cite{deep_learning_approaches}, and Multilingual DistilBERT also performs well.
+The final models tested were those based on the transformers architecture, pre-trained on multiple languages. These models are known as cross-lingual language models (XLM)s \cite{lample2019crosslingual}. There were two models tested - Multilingual DistilBERT, and XLM Roberta. XLM Roberta is currently one of the best transformers for cross-language classification \cite{deep_learning_approaches}, and Multilingual DistilBERT also performs well.
 
-After creating the XML transformers models, the final step of the project was to determine the best input parameters and architecture. After this optimization, the model performances were evaluated and compared to the different layers in the transformers architecture. Through this approach, it is possible to compare the different transformers models and 
+After creating the XLM transformers models, the final step of the project was to determine the best input parameters and architecture. After this optimization, the model performances were evaluated and compared to the different layers in the transformers architecture. Through this approach, it is possible to distinguish which layers of the transformers architecture provide the greatest impact on the accuracy of the output, and decrease the model complexity if any layers result in negligible changes in the output.
+
+\subsection{Evaluation}
+
+This system will be scored based on the speed and accuracy of classification. Model size and training time will not be considered; any problem arising from them can be mitigated by allocating additional resources and optimizing implementations. The final score will be weighted 80\% accuracy and 20\% speed because increased error may exacerbate the current problems with toxic comments in social media \cite{10.1145/3200947.3208069}. The more accurate the model is, the less human intervention is required, and the less false-negatives slip through the classification system. Prediction speed is important to ensure timely communication, but it is not critical.
+
+\section{Experimental Design}
+
+software; algorithms; data sets used in
+your experiments; specify sources; software publicly available
+used; software/algorithms that you implemented; experimental
+setting; training/testing. cross-validation; parameter setting;
+validation measures: accuracy, precision, recall, RMSE, MSE,
+running time etc; Do NOT write the steps to install the
+software you used and similar system issues.
 
 \subsection{Data Sets}
 
@@ -73,17 +87,18 @@ The \textit{comments with unintended bias} dataset contains many more labels tha
 
 After training, there are two additional datasets provided, one called "validation" and another called "test". The validation dataset contains 8,000 rows of comments and binary toxic classifications. There are 1,230 toxic comments (15.4\%). The comments in the validation dataset are written in several foreign languages. The test dataset is used for submission to the competition, containing 15\% of the complete competition test dataset. The test dataset contains 63,812 rows of comments and languages the comments were written in.
 
-\subsection{Evaluation}
 
-This system will be scored based on the speed and accuracy of classification. Model size and training time will not be considered; any problem arising from them can be mitigated by allocating additional resources and optimizing implementations. The final score will be weighted 80\% accuracy and 20\% speed because increased error may exacerbate the current problems with toxic comments in social media \cite{10.1145/3200947.3208069}. The more accurate the model is, the less human intervention is required, and the less false-negatives slip through the classification system. Prediction speed is important to ensure timely communication, but it is not critical.
-
-\section{Experimental Design}
 
 \section{Experimental Results}
 
-\section{Analysis}
+Describe and comment the results
+obtained. You should be able to elaborate and answer the
+questions/issues raised in the introduction/approach sections.
 
 \section{Conclusion and Future Work}
+
+additional directions worth
+exploring; results obtained suggest new directions?
 
 \begin{footnotesize}
 \bibliographystyle{plainnat}
