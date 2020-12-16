@@ -35,7 +35,7 @@ jschmid3@stevens.edu
 \maketitle
 \begin{abstract}
 
-Most comments on online social platforms are constructive, increasing human interactions and quality of life. However, with the immense amount of information produced daily there is a rise in online personal attacks, harassment, and cyber-bullying with toxic comments. This has triggered the research community to identify an efficient and accurate model for predicting the toxicity of online comments, but so far there is no clear solution. Due to the global nature of this problem, any classification model would need to work with many foreign languages and on all online platforms. In this work, a project is proposed for exploring new model designs based on transformers and specifically XLM Roberta. The model designs will be evaluated based on accuracy and speed, utilizing datasets from the "Multilingual Toxic Comment Classification" Kaggle competition.
+Most comments on online social platforms are constructive, increasing human interactions and quality of life. However, with the immense amount of information produced daily there is a rise in online personal attacks, harassment, and cyber-bullying with toxic comments. This has triggered the research community to identify an efficient and accurate model for predicting the toxicity of online comments, but so far there is no clear solution. Due to the global nature of this problem, any classification model would need to work with many foreign languages and on all online platforms. In this report, several machine learning model designs are explored as to their effectiveness in this classification problem. The model designs were evaluated based on their accuracy and speed, utilizing datasets from the "Multilingual Toxic Comment Classification" Kaggle competition. XML Roberta had the best performance, but other models with simpler architectures also performed surprisingly well.
 
 \end{abstract}
 
@@ -105,11 +105,7 @@ Both the DistilBERT and XLM Roberta models contained four layers - an input laye
 
 \section{Experimental Results}
 
-Describe and comment the results
-obtained. You should be able to elaborate and answer the
-questions/issues raised in the introduction/approach sections.
-
-To compare all of the models, the primary metrics used were the area under the ROC curve and the training and validation loss curves. By looking at the training and validation loss curves, it is easy to see if the model is overfit, underfit, if the data is unrepresentative, or a good fit. Models with higher areas under the ROC curve are better at classifying the toxic comments. Precision and recall were ignored because they would not be as useful as area under the ROC curve in determining the most accurate classification model. All of the models have relatively fast prediction times (at least 10 predictions per second), so the main metric used for comparison is area under the ROC curve.
+To compare all of the models, the primary metrics used were the area under the ROC curve and the training and validation loss curves. By looking at the training and validation loss curves, it is easy to see if the model is overfit, underfit, if the data is unrepresentative, or a good fit. These loss curves can be found in Figure \ref{fig:train_validation}. Models with higher areas under the ROC curve are better at classifying the toxic comments. Precision and recall were ignored because they would not be as useful as area under the ROC curve in determining the most accurate classification model. All of the models have relatively fast prediction times (at least 10 predictions per second), so the main metric used for comparison is area under the ROC curve. The training was conducted on an AWS "ml.p2.xlarge" instance.
 
 \begin{figure}
 \begin{tabular*}{\textwidth}{c @{\extracolsep{\fill}} cc}
@@ -121,19 +117,31 @@ To compare all of the models, the primary metrics used were the area under the R
 \subfloat[XLM Roberta]{\includegraphics[width = 3in]{../code/output/xlm_roberta.jpg}}
 \end{tabular*}
 \caption{Training and Validation Loss}
+\label{fig:train_validation}
 \end{figure}
 
-With the Simple RNN model, after training for 15 epochs, the resulting accuracy was 90.86\%. It took 5 minutes to train, and the area under the ROC curve was 68.726\%. This model was relatively fast to train, which is good, but the performance is far worse compared to the other models studied.
+The Simple RNN, LSTM, GRU and bidirectional LSTM all trained for 15 epochs. With the Simple RNN model, the resulting accuracy was 90.86\%. It took 5 minutes to train, and the area under the ROC curve was 68.726\%. This model was relatively fast to train, but the performance is far worse compared to the other models studied, as expected.
 
+The LSTM model training resulted in an accuracy score of 94.72\%. It took 12 minutes to train, and the area under the ROC curve was 96.241\%. It was expected for the LSTM model to do better than the Simple RNN, but it was surprising that the area under the ROC curve was so high already.
 
+After training the GRU model, the accuracy score was 95.51\%. The training process took approximately 18 minutes on the AWS instance. The area under the ROC curve was 97.132\%.
+
+The final base non-transformer model, the bidirectional LSTM, had a slightly lower accuracy score of 94.59\%. The training process took approximately 20 minutes, and the area under the ROC curve was 97.380\%.
+
+The two transformers models were trained over 30 epochs. The first model, DistilBERT, had a training accuracy of 96.97\%. Training took approximately 25 minutes, with the area under the ROC curve being 98.240\%. The second model, XLM Roberta, had a training accuracy of 97.99\%. The training process took approximately 26 minutes, with the resulting area under the ROC curve being 98.723\%.
+
+After training and gathering these results, the best two models were scored with the test data from the competition. These two best models were the two transformers models unsurprisingly. The DistilBERT model scored 87.03\%, and the XLM Roberta model scored 93.82\%. It is surprising that the scores for these two models were so high because they were only trained on English messages, and tested on messages from many different languages. The pre-training for cross-language support is what made the models work so well.
+
+It was also surprising that the simple LSTM model was able to classify toxic comments so accurately. Because there is no cross-language training, it would not do well in the test set for this competition. But if LSTM models are trained on different languages, and there would be one model per language, that may be a more cost-effective way of creating an accurate classifier. One main issue with that approach is one would need a separate algorithm to detect what language the message is written in, in order to forward the message to the corresponding model.
 
 \section{Conclusion and Future Work}
 
-additional directions worth
-exploring; results obtained suggest new directions?
+In conclusion, this experiment turned out very successful. Many of the original hypothesis were validated, such as XLM Roberta would have the best performance and the Simple RNN would have the worst. However there were also many surprises, like how accurate the LSTM model is on English messages. The experiment was limited in several different ways. The dataset was large, but only came from a single source (Twitter) and did not have good labeled metadata of population demographics. Therefore it is possible that the models we have created exhibit racial or demographic bias. The data was collected approximately one year ago, and the way that people communicate may have changed slightly in that time, affecting the performance of these models. There also was limited training time due to budget constraints, preventing training for more epochs or testing more model parameters.
+
+Future work should address these challenges and answer some of the questions they pose. How does hate speech differ on different platforms, if at all? Do the generated models have inherent bias, and if so, what type of training data is required to circumvent this? How can we make these transformer models more efficient to train, so that it does not require as many resources to create the state-of-the-art classification systems? How do other cross-language models compare to the performance of XLM Roberta and DistilBERT? There are many different paths for future exploration, and many questions left to answer. But from this work, it is clear that cross-language transformers models are effective at classifying hate speech on social media platforms. With some slight oversight from human content moderators, this could be an effective tool towards promoting safer and more productive conversations online.
 
 \begin{footnotesize}
 \bibliographystyle{plainnat}
 \bibliography{ref}
-\end{footnotesize}%
+\end{footnotesize}
 \end{document}

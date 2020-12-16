@@ -14,7 +14,7 @@ from utils import roc_auc, plot_train_val_loss
 def run_rnn(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
             x_valid_padded: np.array, y_train: np.array, y_valid: np.array,
             max_len: int, embedding_size_x: int, embedding_size_y: int,
-            embedding_matrix: np.array) -> tf.keras.models.Sequential:
+            embedding_matrix: np.array, epochs: int) -> tf.keras.models.Sequential:
     """
     create and run bidirectional rnn on training and testing data
     """
@@ -37,7 +37,7 @@ def run_rnn(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
 
     model.summary()
 
-    history = model.fit(x_train_padded, y_train, batch_size=64 *
+    history = model.fit(x_train_padded, y_train, epochs=epochs, batch_size=64 *
                         strategy.num_replicas_in_sync)
     plot_train_val_loss(history, 'bidirectional_lstm')
 

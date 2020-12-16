@@ -55,6 +55,7 @@ def read_data() -> Tuple[np.array, np.array, np.array, np.array, int, Dict[str, 
         lambda x: len(str(x).split())).max()
     logger.info(f'max len: {max_len}')
 
+    # train test split
     x_train, x_valid, y_train, y_valid = train_test_split(train['comment_text'].values, train['toxic'].values,
                                                           stratify=train['toxic'].values,
                                                           test_size=TEST_RATIO, shuffle=True)
