@@ -59,17 +59,17 @@ def plot_train_val_loss(history: tf.keras.callbacks.History, model_name: str) ->
     plt.figure()
 
     loss_train = history.history['loss']
-    loss_val = history.history['val_loss']
+    loss_val = history.history['accuracy']
 
     num_epochs = len(loss_train)
     nums = range(1, num_epochs + 1)
 
     plt.plot(nums, loss_train, label="train")
     plt.plot(nums, loss_val, label="validation")
-    plt.title(f"Training and Validation loss over {num_epochs} epochs")
-    plt.xlabel("Epoch #")
+    plt.title(f"{model_name} Training and Validation Loss")
+    plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
     file_path = file_path_relative(
-        f'{output_folder}/{model_name}.png')
+        f'{output_folder}/{model_name}.jpg')
     plt.savefig(file_path)

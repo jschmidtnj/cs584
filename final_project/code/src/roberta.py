@@ -8,7 +8,7 @@ run roberta on dataset
 import tensorflow as tf
 import numpy as np
 from loguru import logger
-from utils import roc_auc, build_model
+from utils import roc_auc, build_model, plot_train_val_loss
 from transformers import TFAutoModel
 
 MODEL: str = 'jplu/tf-xlm-roberta-large'
@@ -30,12 +30,13 @@ def run_roberta(strategy: tf.distribute.TPUStrategy, x_train: np.array,
     model.summary()
 
     n_steps = x_train.shape[0] // batch_size
-    _train_history = model.fit(
+    history = model.fit(
         train_dataset,
         steps_per_epoch=n_steps,
         validation_data=valid_dataset,
         epochs=epochs
     )
+    plot_train_val_loss(history, 'xlm_roberta')
 
     n_steps = x_valid.shape[0] // batch_size
     _train_history_2 = model.fit(
