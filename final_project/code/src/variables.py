@@ -9,4 +9,4 @@ IN_KAGGLE = False
 
 data_folder: str = 'data'
 raw_data_folder: str = f'{data_folder}/raw_data'
-output_folder: str = 'outputs'
+output_folder: str = 'output'
