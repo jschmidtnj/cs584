@@ -1,4 +1,3 @@
 # final project
 
-final project description goes here
-
+Multi Language Toxic Comment Classification
