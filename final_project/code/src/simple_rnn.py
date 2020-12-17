@@ -31,6 +31,7 @@ def simple_rnn(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
 
     model.summary()
 
+    # run model train
     history = model.fit(x_train_padded, y_train, epochs=epochs, batch_size=64 *
                         strategy.num_replicas_in_sync)
     plot_train_val_loss(history, 'simple_rnn')

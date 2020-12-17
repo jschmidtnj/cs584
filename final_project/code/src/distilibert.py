@@ -20,15 +20,16 @@ def run_distilibert(strategy: tf.distribute.TPUStrategy, x_train: np.array,
                     test_dataset: tf.data.Dataset, max_len: int, epochs: int,
                     batch_size: int) -> tf.keras.models.Model:
     """
-    create and run distilibert on training and testing data
+    create and run distilbert on training and testing data
     """
-    logger.info('build distilibert')
+    logger.info('build distilbert')
 
     with strategy.scope():
         transformer_layer = TFDistilBertModel.from_pretrained(MODEL)
         model = build_model(transformer_layer, max_len=max_len)
     model.summary()
 
+    # train given model
     n_steps = x_train.shape[0] // batch_size
     history = model.fit(
         train_dataset,

@@ -15,11 +15,12 @@ from tqdm import tqdm
 
 def build_embeddings(embedding_size_y: int, word_indexes: Dict[str, int]) -> np.array:
     """
-    build embeddings to be used with models
+    build embeddings to be used with basic models
     """
     logger.info('build glove embeddings')
 
     embeddings_indexes: Dict[str, np.array] = {}
+    # open glove 840 file
     with open(file_path_relative(f'glove.840B.{embedding_size_y}d.txt',
                                  base_folder=default_base_folder if not IN_KAGGLE else 'glove840b300dtxt'),
               encoding='utf-8') as glove_file:

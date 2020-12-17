@@ -29,6 +29,7 @@ def run_roberta(strategy: tf.distribute.TPUStrategy, x_train: np.array,
         model = build_model(transformer_layer, max_len=max_len)
     model.summary()
 
+    # run model train
     n_steps = x_train.shape[0] // batch_size
     history = model.fit(
         train_dataset,

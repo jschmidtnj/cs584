@@ -20,8 +20,9 @@ def run_gru(strategy: tf.distribute.TPUStrategy, x_train_padded: np.array,
     """
     logger.info('build gru')
 
+    # build GRU model
     with strategy.scope():
-        # GRU with glove embeddings and two dense layers
+        # GRU with glove embeddings and dense layer
         model = tf.keras.models.Sequential()
         model.add(tf.keras.layers.Embedding(embedding_size_x,
                                             embedding_size_y,

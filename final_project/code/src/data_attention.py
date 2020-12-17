@@ -41,6 +41,7 @@ def read_data_attention(strategy: tf.distribute.TPUStrategy,
     """
     logger.info('reading data for attention models')
 
+    # batch with number of tpu's
     batch_size = 16 * strategy.num_replicas_in_sync
     auto = tf.data.experimental.AUTOTUNE
 
@@ -85,6 +86,7 @@ def read_data_attention(strategy: tf.distribute.TPUStrategy,
         .batch(batch_size)
     )
 
+    # return all datasets
     return x_train, x_valid, y_train, y_valid, train_dataset, valid_dataset, \
         test_dataset, batch_size
 
