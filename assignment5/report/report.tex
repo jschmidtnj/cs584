@@ -8,6 +8,7 @@
 \usepackage{booktabs} % For formal tables
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{makecell}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage[numbers]{natbib}
@@ -34,7 +35,7 @@ jschmid3@stevens.edu
 
 \section{Introduction}
 
-In this assignment, the goal was to create a sequence 2 sequence (seq2seq) network containing two separate RNNS - a decoder and an encoder. The network would be used for translating a sentence from Spanish to English. The encoder reads an input sentence and outputs a vector, while the decoder reads a vector and outputs a sequence of words. An attention mechanism introduced by Bahdanau \cite{bahdanau2016neural} in 2016 gives the encoder a way to "pay attention" to certain aspects of the input. This attention layer was used to increase the performance of the seq2seq network.
+In this assignment, the goal was to create a sequence 2 sequence (seq2seq) network containing two separate RNNs - a decoder and an encoder. The network would be used for translating a sentence from Spanish to English. The encoder reads an input sentence and outputs a vector, while the decoder reads a vector and outputs a sequence of words. An attention mechanism introduced by Bahdanau \cite{bahdanau2016neural} in 2016 gives the encoder a way to "pay attention" to certain aspects of the input. This attention layer was used to increase the performance of the seq2seq network.
 
 \section{Parameters}
 
@@ -42,36 +43,49 @@ I used Tensorflow 2 to create two models - a model with GRU RNNs, and a model wi
 
 \section{Plots}
 
-\begin{figure}
-\begin{tabular*}{\textwidth}{c @{\extracolsep{\fill}} c}
-\subfloat[Model 1]{\includegraphics[width = 3in]{../code/output/model_1.jpg}} \\
-\subfloat[Model 2]{\includegraphics[width = 3in]{../code/output/model_1.jpg}}
+\pagebreak
+
+\begin{table}[!htb]
+\begin{tabular*}{\textwidth}{c@{\extracolsep{\fill}}}
+\subfloat[Model 1]{\includegraphics[width = 5in]{../code/output/model_1.jpg}} \\
+\subfloat[Model 2]{\includegraphics[width = 5in]{../code/output/model_2.jpg}}
 \end{tabular*}
 \caption{Training and Validation Loss}
 \label{fig:train_validation}
-\end{figure}
+\end{table}
 
 \section{Results}
 
+\pagebreak
+
 \begin{table}
 \begin{tabular}{ll}
-parameter              & value \\
-spanish                & test  \\
-english (ground truth) & test  \\
-model 1 translation    & test  \\
-model 2 translation    & test  \\
-                        &      
+\thead{\textbf{parameter}} & \thead{\textbf{value}}  \\
+spanish                    & ¿ que tal ?             \\
+english (ground truth)     & how do you do?          \\
+model 1 translation        & how are they doing ?    \\
+model 2 translation        & what are they doing ?   \\
+                           &                         \\
+spanish                    & no lo creo.             \\
+english (ground truth)     & I do not think so.      \\
+model 1 translation        & I think not.            \\
+model 2 translation        & I think not.            \\
+                           &                         \\
+spanish                    & hace mucho frio aqui.   \\
+english (ground truth)     & It is really cold here. \\
+model 1 translation        & It is very cold.        \\
+model 2 translation        & It is very cold here.
 \end{tabular}
 \end{table}
 
 \begin{table}
 \begin{tabular}{ll}
-Model                              & BLEU Score \\
-custom model 1                     & 27.2113    \\
-custom model 2                     & 26.2418    \\
-Transformer Base + adversarial MLE & 35.180     \\
-Pervasive Attention                & 34.180     \\
-RNN Search                         & 29.980    
+\thead{\textbf{Model}}             & \thead{\textbf{BLEU Score}} \\
+custom model 1                     & 27.2113                     \\
+custom model 2                     & 26.2418                     \\
+Transformer Base + adversarial MLE & 35.180                      \\
+Pervasive Attention                & 34.180                      \\
+RNN Search                         & 29.980
 \end{tabular}
 \end{table}
 
