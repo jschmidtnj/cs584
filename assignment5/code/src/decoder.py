@@ -11,12 +11,12 @@ import tensorflow as tf
 class BahdanauAttention(tf.keras.layers.Layer):
     def __init__(self, units):
         """
-        attention layer based on Bahdanau paper
+        attention layer from Bahdanau paper
         """
         super().__init__()
-        self.W1 = tf.keras.layers.Dense(units)
-        self.W2 = tf.keras.layers.Dense(units)
-        self.V = tf.keras.layers.Dense(1)
+        self.w1 = tf.keras.layers.Dense(units)
+        self.w2 = tf.keras.layers.Dense(units)
+        self.vector = tf.keras.layers.Dense(1)
 
     def call(self, query, values):
         """
@@ -24,32 +24,37 @@ class BahdanauAttention(tf.keras.layers.Layer):
         """
         query_with_time_axis = tf.expand_dims(query, 1)
 
-        score = self.V(tf.nn.tanh(
-            self.W1(query_with_time_axis) + self.W2(values)))
+        score = self.vector(tf.nn.tanh(
+            self.w1(query_with_time_axis) + self.w2(values)))
 
         attention_weights = tf.nn.softmax(score, axis=1)
 
-        context_vector = attention_weights * values
-        context_vector = tf.reduce_sum(context_vector, axis=1)
+        context_vector = tf.reduce_sum(attention_weights * values, axis=1)
 
         return context_vector, attention_weights
 
 
 class Decoder(tf.keras.Model):
-    def __init__(self, vocab_size, embedding_dim, dec_units, batch_sz):
+    def __init__(self, vocab_size, embedding_dimension, decoding_units, batch_size, gru: bool = True):
         """
         decoder for attention model
         """
         super().__init__()
-        self.batch_sz = batch_sz
-        self.dec_units = dec_units
-        self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
-        self.gru = tf.keras.layers.GRU(self.dec_units,
-                                       return_sequences=True,
-                                       return_state=True,
-                                       recurrent_initializer='glorot_uniform')
-        self.fc = tf.keras.layers.Dense(vocab_size)
-        self.attention = BahdanauAttention(self.dec_units)
+        self.batch_size = batch_size
+        self.decoding_units = decoding_units
+        self.embedding = tf.keras.layers.Embedding(
+            vocab_size, embedding_dimension)
+        if gru:
+            self.layer = tf.keras.layers.GRU(self.decoding_units,
+                                             return_sequences=True,
+                                             return_state=True,
+                                             recurrent_initializer='glorot_uniform')
+        else:
+            self.layer = tf.keras.layers.LSTM(self.decoding_units,
+                                              return_sequences=True,
+                                              return_state=True)
+        self.dense_layer = tf.keras.layers.Dense(vocab_size)
+        self.attention = BahdanauAttention(self.decoding_units)
 
     def call(self, x, hidden, enc_output):
         """
@@ -61,10 +66,10 @@ class Decoder(tf.keras.Model):
 
         x = tf.concat([tf.expand_dims(context_vector, 1), x], -1)
 
-        output, state = self.gru(x)
+        output, state = self.layer(x)
 
         output = tf.reshape(output, (-1, output.shape[2]))
 
-        x = self.fc(output)
+        x = self.dense_layer(output)
 
         return x, state, attention_weights

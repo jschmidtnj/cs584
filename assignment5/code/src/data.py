@@ -14,8 +14,7 @@ from os.path import join, dirname
 import re
 import unicodedata
 
-
-NUM_ROWS_TRAIN: int = 30000
+# 80-20 train validation split
 TEST_RATIO: float = 0.2
 
 
@@ -134,7 +133,3 @@ def read_data(dataset_size: Optional[int]) -> Tuple[np.array, np.array, tf.keras
     logger.info(f'{len(input_tensor_train)}, {len(target_tensor_train)}')
 
     return input_tensor_train, target_tensor_train, inp_lang, targ_lang, max_length_targ, max_length_inp, input_val, target_val
-
-
-if __name__ == '__main__':
-    raise RuntimeError('cannot run data on its own')

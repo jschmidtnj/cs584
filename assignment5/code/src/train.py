@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-lstm file
+train file
 
-run lstm on dataset
+run training on dataset
 """
 
 import tensorflow as tf
 from loguru import logger
 from os.path import join
 import time
+from typing import List
+import matplotlib.pyplot as plt
+from utils import file_path_relative
+from variables import output_folder, IN_NOTEBOOK
 
 
 def _loss_function(real, pred, loss_object):
@@ -59,7 +63,32 @@ def _train_step(inp, targ, enc_hidden, targ_lang, encoder, decoder, loss_object,
     return batch_loss
 
 
-def run_train(input_tensor_train, target_tensor_train, targ_lang, checkpoint, checkpoint_dir, encoder, optimizer, decoder, steps_per_epoch, BUFFER_SIZE, BATCH_SIZE) -> None:
+def _plot_train_val_loss(training_loss: List[float], model_name: str) -> None:
+    """
+    plots the training and validation loss given history
+    """
+
+    plt.figure()
+
+    num_epochs = len(training_loss)
+    nums = range(1, num_epochs + 1)
+
+    plt.plot(nums, training_loss, label="train")
+    plt.title(f"{model_name} Training and Validation Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    if IN_NOTEBOOK:
+        plt.show()
+    else:
+        file_path = file_path_relative(
+            f'{output_folder}/{model_name}.jpg')
+        plt.savefig(file_path)
+
+
+def run_train(input_tensor_train, target_tensor_train, targ_lang, checkpoint,
+              checkpoint_dir, encoder, optimizer, decoder, steps_per_epoch,
+              BUFFER_SIZE, BATCH_SIZE, EPOCHS, model_name: str) -> None:
     """
     create and run training
     """
@@ -73,15 +102,14 @@ def run_train(input_tensor_train, target_tensor_train, targ_lang, checkpoint, ch
 
     checkpoint_prefix = join(checkpoint_dir, "ckpt")
 
-    EPOCHS = 15
-
+    training_loss: List[float] = []
     for epoch in range(EPOCHS):
         start = time.time()
         enc_hidden = encoder.initialize_hidden_state()
         total_loss = 0
         for (batch, (inp, targ)) in enumerate(dataset.take(steps_per_epoch)):
             batch_loss = _train_step(inp, targ, enc_hidden, targ_lang,
-                                    encoder, decoder, loss_object, optimizer, BATCH_SIZE)
+                                     encoder, decoder, loss_object, optimizer, BATCH_SIZE)
             total_loss += batch_loss
             if batch % 100 == 0:
                 logger.info(
@@ -90,10 +118,9 @@ def run_train(input_tensor_train, target_tensor_train, targ_lang, checkpoint, ch
         if (epoch + 1) % 2 == 0:
             checkpoint.save(file_prefix=checkpoint_prefix)
 
-        logger.info(
-            f'Epoch {epoch + 1} Loss {total_loss / steps_per_epoch:.4f}')
+        epoch_loss = total_loss / steps_per_epoch
+        training_loss.append(epoch_loss)
+        logger.info(f'Epoch {epoch + 1} Loss {epoch_loss:.4f}')
         logger.info(f'Time taken for epoch {time.time() - start} sec\n')
 
-
-if __name__ == '__main__':
-    raise RuntimeError('cannot run training on its own')
+    _plot_train_val_loss(training_loss, model_name)

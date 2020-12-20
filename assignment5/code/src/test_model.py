@@ -8,12 +8,12 @@ run test on dataset
 import tensorflow as tf
 import numpy as np
 from loguru import logger
-from data import preprocess_sentence, preprocess_without_tokens
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from typing import List
 from nltk.translate.bleu_score import sentence_bleu
-from variables import output_folder
+from variables import output_folder, IN_NOTEBOOK
+from data import preprocess_sentence, preprocess_without_tokens
 from utils import file_path_relative
 
 
@@ -82,10 +82,12 @@ def _plot_attention(attention, sentence, predicted_sentence, name: str):
     ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
     ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-    plt.show()
-    file_path = file_path_relative(
-        f'{output_folder}/attention_{name}.jpg')
-    plt.savefig(file_path)
+    if IN_NOTEBOOK:
+        plt.show()
+    else:
+        file_path = file_path_relative(
+            f'{output_folder}/attention_{name}.jpg')
+        plt.savefig(file_path)
 
 
 def run_tests(max_length_targ, max_length_inp, inp_lang, targ_lang, units, encoder, decoder, input_vals: List[str], target_vals: List[str], name: str, first_print: int = 5) -> float:
@@ -94,12 +96,15 @@ def run_tests(max_length_targ, max_length_inp, inp_lang, targ_lang, units, encod
     """
     scores: List[float] = []
     for i, line in enumerate(input_vals):
-        output, sentence, attention_plot = _evaluate(line, max_length_targ, max_length_inp, inp_lang, targ_lang, units, encoder, decoder)
+        output, sentence, attention_plot = _evaluate(
+            line, max_length_targ, max_length_inp, inp_lang, targ_lang, units, encoder, decoder)
         if i < first_print:
             logger.info(f'Input: {sentence}')
             logger.info(f"Translated: {' '.join(output)}")
-            attention_plot = attention_plot[:len(output), :len(sentence.split(' '))]
-            _plot_attention(attention_plot, sentence.split(' '), output, f'{name}_{i}')
+            attention_plot = attention_plot[:len(
+                output), :len(sentence.split(' '))]
+            _plot_attention(attention_plot, sentence.split(
+                ' '), output, f'{name}_{i}')
 
         target_val = preprocess_without_tokens(target_vals[i])
         current_score = sentence_bleu([output], target_val)
@@ -108,7 +113,3 @@ def run_tests(max_length_targ, max_length_inp, inp_lang, targ_lang, units, encod
     logger.info(f'bleu score: {total_score}')
 
     return total_score
-
-
-if __name__ == '__main__':
-    raise RuntimeError('cannot run lstm on its own')

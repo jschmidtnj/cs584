@@ -34,10 +34,55 @@ jschmid3@stevens.edu
 
 \section{Introduction}
 
-output
+In this assignment, the goal was to create a sequence 2 sequence (seq2seq) network containing two separate RNNS - a decoder and an encoder. The network would be used for translating a sentence from Spanish to English. The encoder reads an input sentence and outputs a vector, while the decoder reads a vector and outputs a sequence of words. An attention mechanism introduced by Bahdanau \cite{bahdanau2016neural} in 2016 gives the encoder a way to "pay attention" to certain aspects of the input. This attention layer was used to increase the performance of the seq2seq network.
+
+\section{Parameters}
+
+I used Tensorflow 2 to create two models - a model with GRU RNNs, and a model with LSTM RNNs. The attention layer was the same for both, and I used the layer described in the original paper. For the first seq2seq network, the embedding dimension was set to 256, and the units (size of hidden layers in GRU) to 1024. In the second network, the embedding dimension was set to 300, and the units (size of hidden layers in LSTM) to 1200. The dataset size was set to 20000 rows, with training over 12 epochs. TPU acceleration was used to decrease the training time.
+
+\section{Plots}
+
+\begin{figure}
+\begin{tabular*}{\textwidth}{c @{\extracolsep{\fill}} c}
+\subfloat[Model 1]{\includegraphics[width = 3in]{../code/output/model_1.jpg}} \\
+\subfloat[Model 2]{\includegraphics[width = 3in]{../code/output/model_1.jpg}}
+\end{tabular*}
+\caption{Training and Validation Loss}
+\label{fig:train_validation}
+\end{figure}
+
+\section{Results}
+
+\begin{table}
+\begin{tabular}{ll}
+parameter              & value \\
+spanish                & test  \\
+english (ground truth) & test  \\
+model 1 translation    & test  \\
+model 2 translation    & test  \\
+                        &      
+\end{tabular}
+\end{table}
+
+\begin{table}
+\begin{tabular}{ll}
+Model                              & BLEU Score \\
+custom model 1                     & 27.2113    \\
+custom model 2                     & 26.2418    \\
+Transformer Base + adversarial MLE & 35.180     \\
+Pervasive Attention                & 34.180     \\
+RNN Search                         & 29.980    
+\end{tabular}
+\end{table}
+
+BLEU scores from Weiting \cite{wieting2019beyond} paper.
+
+\section{Analysis \& Conclusion}
+
+These models overall performed fairly well, with relatively high BLEU scores compared with other state-of-the-art models. I learned how to create these advanced attention models in Tensorflow, which was a good learning experience. One major obstacle I ran into was the amount of time these models take to train. As the maximum sentence size increases, the training time increases significantly as well. I needed to sort by sentence length and take the first n- rows to use as training data, in order to be able to train the models fast enough (but it still took over one hour per model on a TPU). Ideally, I would have trained and tested over the entire corpus, with at least 15 epochs. The main takeaway from this assignment, therefore, is that a significant obstacle when creating these advanced NLP models is training time and compute resources. I can't imagine the compute resources companies like Google have to run their translation models.
 
 \begin{footnotesize}
 \bibliographystyle{plainnat}
-% \bibliography{ref}
+\bibliography{ref}
 \end{footnotesize}
 \end{document}
